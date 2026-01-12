@@ -1,2 +1,38 @@
-target
-.idea
+# Build outputs
+/target/
+/build/
+
+# Logs
+logs/
+*.log
+
+
+# OS / tooling
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.idea/
+*.iml
+.vscode/
+
+# Node / frontend
+node_modules/
+
+# Environment / secrets
+.env
+.env.*
+.env.local
+.env.*.local
+.env.production
+
+# Git credentials and tokens
+git-token.txt
+git-credentials
+.git-credentials
+*.token
+credentials.txt
+
+# Misc
+/dist/
+/tmp/

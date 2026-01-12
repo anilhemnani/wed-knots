@@ -1,15 +1,15 @@
 #!/bin/bash
-cd /home/anilhemnani/moments-manager
+cd /home/anilhemnani/wed-knots
 
 echo "Stopping any existing application..."
-pkill -9 -f "java.*moments-manager" 2>/dev/null || true
+pkill -9 -f "java.*wed-knots" 2>/dev/null || true
 
 echo "Building application..."
 mvn clean package -DskipTests
 
 if [ $? -eq 0 ]; then
     echo "Build successful! Starting application..."
-    nohup java -jar target/moments-manager-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
+    nohup java -jar target/wed-knots-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
     echo $! > app.pid
 
     echo "Application starting... PID: $(cat app.pid)"

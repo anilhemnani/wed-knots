@@ -8,7 +8,7 @@
 <body class="bg-light">
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/admin/dashboard">Moments Manager</a>
+        <a class="navbar-brand" href="/admin/dashboard">WedKnots</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -84,9 +84,9 @@
                                 <h6 class="card-title"><i class="bi bi-diagram-3"></i> Template Configuration</h6>
 
                                 <div class="mb-3">
-                                    <label for="templateName" class="form-label">Select Template (WhatsApp template mode only) <span class="text-danger" id="templateNameRequired" style="display: none;">*</span></label>
+                                    <label for="templateName" class="form-label">Select WhatsApp Template <span class="text-danger" id="templateNameRequired" style="display: none;">*</span></label>
                                     <div id="templateDropdownContainer">
-                                        <select class="form-select" id="templateName" th:field="*{templateName}">
+                                        <select class="form-select" id="templateName" th:field="*{templateName}" onchange="updateTemplatePreview()">
                                             <option value="">-- Loading Templates --</option>
                                         </select>
                                         <div class="form-text">Available WhatsApp templates from your Meta Business account</div>
@@ -97,21 +97,28 @@
                                     </div>
                                 </div>
 
+                                <!-- Template Preview Card -->
+                                <div id="templatePreviewCard" style="display: none;" class="alert alert-info p-3 mb-3">
+                                    <h6 id="templatePreviewName" class="mb-2"><i class="bi bi-file-earmark-text"></i> Template Preview</h6>
+                                    <div class="border-start border-info ps-3 mb-2">
+                                        <small id="templatePreviewHeader" class="d-block fw-bold text-muted mb-2"></small>
+                                        <small id="templatePreviewBody" class="d-block text-muted mb-2" style="white-space: pre-wrap;"></small>
+                                        <small id="templatePreviewFooter" class="d-block text-muted" style="font-size: 0.85rem;"></small>
+                                    </div>
+                                    <div class="alert alert-sm alert-light mb-0 mt-2">
+                                        <small>
+                                            <span class="badge bg-secondary" id="templateCategory">UTILITY</span>
+                                            <span class="badge bg-info" id="templateLanguageTag">en</span>
+                                            <span class="badge bg-success" id="templateStatus">APPROVED</span>
+                                        </small>
+                                    </div>
+                                </div>
+
                                 <div class="mb-3">
                                     <label for="templateLanguage" class="form-label">Template Language</label>
-                                    <select class="form-select" id="templateLanguage" th:field="*{templateLanguage}">
-                                        <option value="en_US">English (US)</option>
-                                        <option value="en_GB">English (UK)</option>
-                                        <option value="hi_IN">Hindi</option>
-                                        <option value="es_ES">Spanish</option>
-                                        <option value="fr_FR">French</option>
-                                        <option value="de_DE">German</option>
-                                        <option value="pt_BR">Portuguese (Brazil)</option>
-                                        <option value="it_IT">Italian</option>
-                                        <option value="ja_JP">Japanese</option>
-                                        <option value="zh_CN">Chinese (Simplified)</option>
-                                    </select>
-                                    <div class="form-text">Language code for the template (must match Meta configuration)</div>
+                                    <input type="text" class="form-control" id="templateLanguage" th:field="*{templateLanguage}"
+                                           readonly placeholder="Auto-detected from template">
+                                    <div class="form-text">Language code is automatically detected from the selected template</div>
                                 </div>
 
                                 <div class="alert alert-info mb-0" role="alert">
@@ -181,7 +188,10 @@ RSVP: Please confirm your attendance by clicking the link below."></textarea>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
+<script th:inline="javascript">
+    // Store available templates globally for access in functions
+    let allTemplates = [];
+
     // Live preview
     document.addEventListener('DOMContentLoaded', function() {
         const titleInput = document.getElementById('title');
@@ -207,15 +217,23 @@ RSVP: Please confirm your attendance by clicking the link below."></textarea>
 
     // Populate template dropdown from available templates
     function populateTemplateDropdown() {
-        const availableTemplates = /*[[${availableTemplates}]]*/ [];
+        /*<![CDATA[*/
+        const availableTemplates = [[${availableTemplates}]];
+        /*]]>*/
         const templateSelect = document.getElementById('templateName');
         const dropdownContainer = document.getElementById('templateDropdownContainer');
         const noTemplatesMessage = document.getElementById('noTemplatesMessage');
 
+        // Store templates globally
+        allTemplates = availableTemplates || [];
+
+        console.log('Available Templates:', availableTemplates);
+        console.log('Templates count:', allTemplates.length);
+
         // Clear existing options except the placeholder
         templateSelect.innerHTML = '';
 
-        if (availableTemplates && availableTemplates.length > 0) {
+        if (allTemplates && allTemplates.length > 0) {
             // Show dropdown, hide "no templates" message
             dropdownContainer.style.display = 'block';
             noTemplatesMessage.style.display = 'none';
@@ -226,24 +244,107 @@ RSVP: Please confirm your attendance by clicking the link below."></textarea>
             placeholderOption.textContent = '-- Select a Template --';
             templateSelect.appendChild(placeholderOption);
 
-            // Add template options
-            availableTemplates.forEach(function(template) {
+            // Add template options with rich display
+            allTemplates.forEach(function(template) {
                 const option = document.createElement('option');
-                option.value = template.name;
-                option.textContent = template.name + ' (' + template.language + ')';
+
+                if (typeof template === 'object' && template.name) {
+                    option.value = template.name;
+                    // Display template name with language and status
+                    let display = template.name;
+                    if (template.language) {
+                        display += ' (' + template.language + ')';
+                    }
+                    if (template.category) {
+                        display += ' - ' + template.category;
+                    }
+                    option.textContent = display;
+                } else {
+                    option.value = template;
+                    option.textContent = template;
+                }
+
                 templateSelect.appendChild(option);
+                console.log('Added template:', option.value, option.textContent);
             });
 
             // Restore previously selected value if any
-            const currentValue = /*[[${invitation.templateName}]]*/ '';
+            /*<![CDATA[*/
+            const currentValue = [[${invitation.templateName}]];
+            /*]]>*/
             if (currentValue) {
                 templateSelect.value = currentValue;
+                updateTemplatePreview(); // Show preview for current selection
             }
+
+            console.log('Populated', allTemplates.length, 'templates');
         } else {
+            console.log('No templates available');
             // Show "no templates" message, hide dropdown
             dropdownContainer.style.display = 'none';
             noTemplatesMessage.style.display = 'block';
         }
+    }
+
+    // Update template preview when selection changes
+    function updateTemplatePreview() {
+        const templateName = document.getElementById('templateName').value;
+        const templatePreviewCard = document.getElementById('templatePreviewCard');
+        const templateLanguageInput = document.getElementById('templateLanguage');
+
+        if (!templateName) {
+            templatePreviewCard.style.display = 'none';
+            templateLanguageInput.value = ''; // Clear language
+            return;
+        }
+
+        // Find the selected template
+        const selectedTemplate = allTemplates.find(t => t.name === templateName);
+
+        if (!selectedTemplate) {
+            templatePreviewCard.style.display = 'none';
+            templateLanguageInput.value = ''; // Clear language
+            return;
+        }
+
+        // Auto-fill template language from selected template
+        if (selectedTemplate.language) {
+            templateLanguageInput.value = selectedTemplate.language;
+            console.log('Auto-filled language:', selectedTemplate.language, 'for template:', templateName);
+        }
+
+        // Extract component texts
+        const headerText = selectedTemplate.components
+            ? selectedTemplate.components.find(c => c.type === 'HEADER')?.text || ''
+            : '';
+        const bodyText = selectedTemplate.components
+            ? selectedTemplate.components.find(c => c.type === 'BODY')?.text || ''
+            : '';
+        const footerText = selectedTemplate.components
+            ? selectedTemplate.components.find(c => c.type === 'FOOTER')?.text || ''
+            : '';
+
+        // Update preview card
+        document.getElementById('templatePreviewName').textContent =
+            (selectedTemplate.name || 'Template') + ' Preview';
+        document.getElementById('templatePreviewHeader').textContent =
+            headerText ? '📌 ' + headerText : '';
+        document.getElementById('templatePreviewBody').textContent = bodyText;
+        document.getElementById('templatePreviewFooter').textContent =
+            footerText ? '✓ ' + footerText : '';
+
+        // Update badges
+        document.getElementById('templateCategory').textContent =
+            selectedTemplate.category || 'UTILITY';
+        document.getElementById('templateLanguageTag').textContent =
+            selectedTemplate.language || 'en';
+        document.getElementById('templateStatus').textContent =
+            selectedTemplate.status || 'APPROVED';
+
+        // Show preview card
+        templatePreviewCard.style.display = 'block';
+
+        console.log('Updated preview for template:', selectedTemplate.name);
     }
 
     // Toggle template configuration fields based on message type
@@ -256,9 +357,8 @@ RSVP: Please confirm your attendance by clicking the link below."></textarea>
         const messageRequired = document.getElementById('messageRequired');
 
         if (messageTypeTemplate.checked) {
-            // Template mode - hide template fields if no templates available
-            const availableTemplates = /*[[${availableTemplates}]]*/ [];
-            if (availableTemplates && availableTemplates.length > 0) {
+            // Template mode
+            if (allTemplates && allTemplates.length > 0) {
                 templateFields.style.display = 'block';
                 templateNameSelect.required = true;
                 templateNameRequired.style.display = 'inline';
@@ -269,8 +369,6 @@ RSVP: Please confirm your attendance by clicking the link below."></textarea>
             // Message is optional for templates
             messageInput.required = false;
             messageRequired.textContent = '';
-
-            // Change placeholder to indicate optional
             messageInput.placeholder = 'Dear Guest,\n\n(Optional - for preview or fallback. Template message will be used when sending.)';
         } else {
             // Plain text mode

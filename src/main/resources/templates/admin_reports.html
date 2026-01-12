@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Admin Reports - WedKnots</title>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">
+      <img src="/icon" height="30" class="me-2" alt="WedKnots">
+      WedKnots – The Smart Wedding Concierge
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="/admin/reports">Admin Reports</a></li>
+        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Admin Reports</h1>
+    <a href="/admin/dashboard" class="btn btn-secondary">
+      <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-6 col-lg-3 mb-3">
+      <div class="card shadow-sm border-0">
+        <div class="card-body text-center">
+          <h6 class="card-title text-muted mb-2">Total Weddings</h6>
+          <p class="display-5 fw-bold text-primary" th:text="${summary.weddingsCount}">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-3">
+      <div class="card shadow-sm border-0">
+        <div class="card-body text-center">
+          <h6 class="card-title text-muted mb-2">Total Guests</h6>
+          <p class="display-5 fw-bold text-success" th:text="${summary.guestsCount}">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-3">
+      <div class="card shadow-sm border-0">
+        <div class="card-body text-center">
+          <h6 class="card-title text-muted mb-2">Total Attendees</h6>
+          <p class="display-5 fw-bold text-info" th:text="${summary.attendeesCount}">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-3">
+      <div class="card shadow-sm border-0">
+        <div class="card-body text-center">
+          <h6 class="card-title text-muted mb-2">Generated At</h6>
+          <p class="small text-muted" th:text="${#temporals.format(summary.generatedAt, 'yyyy-MM-dd HH:mm')}">-</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="mt-4">Per Event Summary</h3>
+
+  <!-- Filters -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0"><i class="bi bi-graph-up"></i> Wedding Events Report</h5>
+    </div>
+    <div class="card-body">
+      <form class="row mb-3" method="get" action="">
+        <div class="col-md-3">
+          <label class="form-label">Page Size</label>
+          <select class="form-select" name="size" th:value="${size}">
+            <option th:value="10" th:selected="${size==10}">10</option>
+            <option th:value="25" th:selected="${size==25}">25</option>
+            <option th:value="50" th:selected="${size==50}">50</option>
+            <option th:value="100" th:selected="${size==100}">100</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Search (event name)</label>
+          <input type="text" class="form-control" name="search" th:value="${search}" placeholder="Type to filter...">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary w-100">Apply</button>
+        </div>
+      </form>
+
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Date</th>
+              <th class="text-center">Guests</th>
+              <th class="text-center">Attendees</th>
+              <th class="text-center">Traffic (views)</th>
+              <th>Last Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="event : ${events}">
+              <td th:text="${event.name}"></td>
+              <td th:text="${event.date}"></td>
+              <td class="text-center"><span class="badge bg-info" th:text="${summary.guestsPerEvent[event.id]}">0</span></td>
+              <td class="text-center"><span class="badge bg-success" th:text="${summary.attendeesPerEvent[event.id]}">0</span></td>
+              <td class="text-center"><span class="badge bg-warning text-dark" th:text="${summary.trafficViews[event.id] != null ? summary.trafficViews[event.id] : 0}">0</span></td>
+              <td th:text="${summary.lastUpdated[event.id] != null ? #temporals.format(summary.lastUpdated[event.id], 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <nav th:if="${page != null && page.totalPages > 1}">
+        <ul class="pagination justify-content-center">
+          <li class="page-item" th:classappend="${page.first} ? 'disabled'">
+            <a class="page-link" th:href="@{/admin/reports(page=${page.number-1},size=${size},search=${search})}">Previous</a>
+          </li>
+          <li class="page-item" th:each="i : ${#numbers.sequence(0, page.totalPages-1)}" th:classappend="${i==page.number} ? 'active'">
+            <a class="page-link" th:text="${i+1}" th:href="@{/admin/reports(page=${i},size=${size},search=${search})}"></a>
+          </li>
+          <li class="page-item" th:classappend="${page.last} ? 'disabled'">
+            <a class="page-link" th:href="@{/admin/reports(page=${page.number+1},size=${size},search=${search})}">Next</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+</body>
+</html>

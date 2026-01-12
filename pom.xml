@@ -1,22 +1,51 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.momentsmanager</groupId>
-    <artifactId>moments-manager</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <groupId>com.wedknots</groupId>
+    <artifactId>wed-knots</artifactId>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
-    <name>moments-manager</name>
+    <name>wed-knots</name>
     <description>Wedding Management System - Java Spring Boot Version</description>
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
-        <relativePath/> <!-- lookup parent from repository -->
-    </parent>
+
+    <!-- SCM Configuration for Maven Release -->
+    <scm>
+        <connection>scm:git:https://github.com/anilhemnani/wed-knots.git</connection>
+        <developerConnection>scm:git:https://github.com/anilhemnani/wed-knots.git</developerConnection>
+        <url>https://github.com/anilhemnani/wed-knots</url>
+        <tag>v1.0.0</tag>
+    </scm>
+
+    <!-- Distribution Management for Maven Release -->
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/anilhemnani/wed-knots</url>
+        </repository>
+        <snapshotRepository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/anilhemnani/wed-knots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
+        <spring.boot.version>4.0.1</spring.boot.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -52,9 +81,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
+        <!-- pin Lombok with version and compile-time scope -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <version>1.18.30</version>
+            <scope>provided</scope>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -68,13 +100,26 @@
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt</artifactId>
-            <version>0.9.1</version>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.3</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.3</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.3</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>com.sendgrid</groupId>
             <artifactId>sendgrid-java</artifactId>
-            <version>4.9.3</version>
+            <version>4.10.3</version>
+            <!-- Latest stable version available -->
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -90,15 +135,199 @@
             <version>1.5</version>
         </dependency>
         <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.15.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
         </dependency>
+        <!-- Jasypt for encrypting sensitive properties -->
+        <dependency>
+            <groupId>com.github.ulisesbocchio</groupId>
+            <artifactId>jasypt-spring-boot-starter</artifactId>
+            <version>3.0.5</version>
+        </dependency>
+        <!-- PostgreSQL driver -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring.boot.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <mainClass>com.wedknots.WedKnotsApplication</mainClass>
+                </configuration>
+            </plugin>
+
+            <!-- single maven-compiler-plugin configured for Lombok annotation processing -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <release>${java.version}</release>
+                    <parameters>true</parameters>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.30</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>stage-distribution-files</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/dist-staging</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/distribution</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>prepare-dist-layout</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <!-- Create standard folders under dist-staging -->
+                                <mkdir dir="${project.build.directory}/dist-staging/app" />
+                                <mkdir dir="${project.build.directory}/dist-staging/bin" />
+                                <mkdir dir="${project.build.directory}/dist-staging/config" />
+                                <mkdir dir="${project.build.directory}/dist-staging/logs" />
+
+                                <!-- Move scripts and readme to bin/root as needed -->
+                                <copy todir="${project.build.directory}/dist-staging/bin">
+                                    <fileset dir="src/distribution/bin" includes="**/*" />
+                                </copy>
+                                <copy file="src/distribution/README.md" todir="${project.build.directory}/dist-staging" />
+                                <copy todir="${project.build.directory}/dist-staging/config">
+                                    <fileset dir="src/distribution/config" includes="**/*" />
+                                </copy>
+
+                                <!-- Copy versioned jar into app/ -->
+                                <copy file="${project.build.directory}/${project.artifactId}-${project.version}.jar" tofile="${project.build.directory}/dist-staging/app/${project.artifactId}-${project.version}.jar" />
+
+                                <!-- Write version file -->
+                                <echo file="${project.build.directory}/dist-staging/VERSION.txt">Application: ${project.name}
+Version: ${project.version}
+Build Date: ${maven.build.timestamp}
+Java Version: ${java.version}
+Spring Boot Version: ${spring.boot.version}
+                                </echo>
+
+                                <!-- Ensure Unix scripts executable -->
+                                <chmod dir="${project.build.directory}/dist-staging/bin" perm="755" type="file" includes="*.sh" />
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <id>make-zip</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/distribution.xml</descriptor>
+                            </descriptors>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <finalName>${project.artifactId}-${project.version}</finalName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Maven Release Plugin for version management and tagging -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>3.0.1</version>
+                <configuration>
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <useReleaseProfile>true</useReleaseProfile>
+                    <releaseProfiles>release</releaseProfiles>
+                    <goals>deploy</goals>
+                    <scmCommentPrefix>[maven-release-plugin]</scmCommentPrefix>
+                    <tagNameFormat>v@{project.version}</tagNameFormat>
+                    <preparationGoals>clean verify</preparationGoals>
+                </configuration>
+            </plugin>
+
+            <!-- Maven SCM Plugin for source control operations -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-scm-plugin</artifactId>
+                <version>2.0.0</version>
+                <configuration>
+                    <connectionType>developerConnection</connectionType>
+                </configuration>
+            </plugin>
+
+            <!-- JAR Plugin for manifest -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
             </plugin>
         </plugins>
     </build>
