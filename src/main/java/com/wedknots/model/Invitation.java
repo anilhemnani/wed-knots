@@ -57,6 +57,9 @@ public class Invitation {
     @Builder.Default
     private String status = "DRAFT"; // DRAFT, ACTIVE, ARCHIVED
 
+    @Transient
+    private String whatsAppMessage; // Optional runtime WhatsApp message text
+
     // Track which guests received this invitation
     @OneToMany(mappedBy = "invitation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
@@ -67,4 +70,3 @@ public class Invitation {
         createdAt = LocalDateTime.now();
     }
 }
-

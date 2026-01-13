@@ -102,7 +102,9 @@ public class GuestInvitationsController {
                 .orElseThrow(() -> new RuntimeException("Invitation not found"));
 
         Invitation invitation = invitationLog.getInvitation();
-        
+        // Populate WhatsApp message for template rendering (fallback to invitation message)
+        invitation.setWhatsAppMessage(invitation.getMessage());
+
         Optional<Guest> guestOpt = guestRepository.findByFamilyNameIgnoreCaseAndContactPhone(familyName, guestPhoneNumber);
         if (guestOpt.isEmpty()) {
             throw new RuntimeException("Guest not found");

@@ -18,8 +18,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -92,11 +94,20 @@ public class InvitationWebController {
     @PostMapping("/new")
     public String createInvitation(@PathVariable Long eventId,
                                    @ModelAttribute Invitation invitation,
+                                   @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
                                    RedirectAttributes redirectAttributes) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
         try {
+            // If a file is uploaded, override imageUrl with data URI
+            if (imageFile != null && !imageFile.isEmpty()) {
+                byte[] bytes = imageFile.getBytes();
+                String contentType = imageFile.getContentType() != null ? imageFile.getContentType() : "image/png";
+                String dataUri = "data:" + contentType + ";base64," + Base64.getEncoder().encodeToString(bytes);
+                invitation.setImageUrl(dataUri);
+            }
+
             invitationService.createInvitation(eventId, invitation, username);
             redirectAttributes.addFlashAttribute("successMessage", "Invitation created successfully!");
         } catch (Exception e) {
@@ -138,8 +149,17 @@ public class InvitationWebController {
     public String updateInvitation(@PathVariable Long eventId,
                                     @PathVariable Long invitationId,
                                     @ModelAttribute Invitation invitation,
+                                    @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
                                     RedirectAttributes redirectAttributes) {
         try {
+            // If a new file is uploaded, override imageUrl; otherwise keep existing imageUrl
+            if (imageFile != null && !imageFile.isEmpty()) {
+                byte[] bytes = imageFile.getBytes();
+                String contentType = imageFile.getContentType() != null ? imageFile.getContentType() : "image/png";
+                String dataUri = "data:" + contentType + ";base64," + Base64.getEncoder().encodeToString(bytes);
+                invitation.setImageUrl(dataUri);
+            }
+
             invitationService.updateInvitation(invitationId, invitation);
             redirectAttributes.addFlashAttribute("successMessage", "Invitation updated successfully!");
         } catch (Exception e) {

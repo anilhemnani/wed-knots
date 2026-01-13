@@ -8,21 +8,7 @@
     <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
 </head>
 <body class="bg-light">
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="/">
-      <img src="/icon" height="30" class="me-2" alt="WedKnots">
-      WedKnots – The Smart Wedding Concierge
-    </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
-      </ul>
-    </div>
-  </div>
+<th:block th:replace="~{_navbar :: guestNav}"></th:block>
 </nav>
 <div class="container py-5">
   <h1 class="mb-4">Guest Dashboard</h1>
@@ -30,7 +16,8 @@
     <div class="col-md-6 col-lg-4 mb-3">
       <div class="card h-100">
         <div class="card-body text-center">
-          <h5 class="card-title">Invitations</h5>
+          <h5 class="card-title"><i class="bi bi-envelope"></i> Invitations</h5>
+          <p class="text-muted small">View your wedding invitations</p>
           <a href="/invitations" class="btn btn-outline-primary w-100">View My Invitations</a>
         </div>
       </div>
@@ -38,13 +25,28 @@
     <div class="col-md-6 col-lg-4 mb-3">
       <div class="card h-100">
         <div class="card-body text-center">
-          <h5 class="card-title">RSVP</h5>
+          <h5 class="card-title"><i class="bi bi-check-circle"></i> RSVP</h5>
+          <p class="text-muted small">Confirm your attendance</p>
           <a href="/rsvps/form" class="btn btn-outline-primary w-100">Submit/Update RSVP</a>
           <a href="/rsvps" class="btn btn-outline-secondary w-100 mt-2">View My RSVP Status</a>
         </div>
       </div>
     </div>
+    <div class="col-md-6 col-lg-4 mb-3">
+      <div class="card h-100 border-info">
+        <div class="card-body text-center">
+          <h5 class="card-title"><i class="bi bi-chat-dots"></i> Messages</h5>
+          <p class="text-muted small">Chat with hosts</p>
+          <a href="/invitations" class="btn btn-outline-info w-100">View Messages</a>
+          <small class="text-muted d-block mt-2">Access from your invitation</small>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <style>
+    .border-info { border-left: 4px solid #0dcaf0; }
+  </style>
 </div>
 </body>
 </html>

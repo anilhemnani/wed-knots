@@ -38,7 +38,7 @@
                     </div>
 
                     <form th:action="@{${invitation.id == null ? '/events/' + event.id + '/invitations/new' : '/events/' + event.id + '/invitations/' + invitation.id + '/edit'}}"
-                          th:object="${invitation}" method="POST">
+                          th:object="${invitation}" method="POST" enctype="multipart/form-data">
 
                         <div class="mb-3">
                             <label for="title" class="form-label">Invitation Title <span class="text-danger">*</span></label>
@@ -129,7 +129,9 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="message" class="form-label">Message <span class="text-danger" id="messageRequired">*</span></label>
+                            <label for="message" class="form-label">
+                                Message <span class="text-danger" id="messageRequired">*</span>
+                            </label>
                             <textarea class="form-control" id="message" th:field="*{message}" rows="8"
                                       placeholder="Dear Guest,
 
@@ -141,14 +143,26 @@ Venue: The Grand Hotel, Mumbai
 We look forward to your presence on this joyous occasion!
 
 RSVP: Please confirm your attendance by clicking the link below."></textarea>
-                            <div class="form-text">The message that will be sent to guests via WhatsApp</div>
+                            <div class="form-text">
+                                <span id="messageHelpPlain">The message that will be sent to guests via WhatsApp</span>
+                                <span id="messageHelpTemplate" style="display: none;">
+                                    <i class="bi bi-info-circle text-info"></i> <strong>Auto-populated from selected template.</strong>
+                                    You can edit this message if needed before saving.
+                                </span>
+                            </div>
                         </div>
 
                         <div class="mb-3">
                             <label for="imageUrl" class="form-label">Image/Card URL (Optional)</label>
                             <input type="url" class="form-control" id="imageUrl" th:field="*{imageUrl}"
                                    placeholder="https://example.com/invitation-card.jpg">
-                            <div class="form-text">URL to an invitation card image (optional)</div>
+                            <div class="form-text">Provide a URL or upload an image below.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="imageFile" class="form-label">Upload Image (Optional)</label>
+                            <input type="file" class="form-control" id="imageFile" name="imageFile" accept="image/*">
+                            <div class="form-text">If you upload a file, it will be used instead of the URL above.</div>
                         </div>
 
                         <div class="mb-3">
@@ -341,6 +355,32 @@ RSVP: Please confirm your attendance by clicking the link below."></textarea>
         document.getElementById('templateStatus').textContent =
             selectedTemplate.status || 'APPROVED';
 
+        // **AUTO-POPULATE MESSAGE FIELD WITH TEMPLATE CONTENT**
+        // Build the full template text from components
+        let fullTemplateText = '';
+        if (headerText) {
+            fullTemplateText += headerText + '\n\n';
+        }
+        if (bodyText) {
+            fullTemplateText += bodyText;
+        }
+        if (footerText) {
+            fullTemplateText += '\n\n' + footerText;
+        }
+
+        // Auto-fill the message textarea with the template content
+        const messageField = document.getElementById('message');
+        messageField.value = fullTemplateText.trim();
+
+        // Update the live preview
+        document.getElementById('previewMessage').textContent = fullTemplateText.trim() || 'Message preview will appear here...';
+
+        // Show template help text
+        document.getElementById('messageHelpPlain').style.display = 'none';
+        document.getElementById('messageHelpTemplate').style.display = 'inline';
+
+        console.log('Auto-populated message field with template content:', fullTemplateText.substring(0, 100) + '...');
+
         // Show preview card
         templatePreviewCard.style.display = 'block';
 
@@ -366,10 +406,14 @@ RSVP: Please confirm your attendance by clicking the link below."></textarea>
                 templateFields.style.display = 'block';
             }
 
-            // Message is optional for templates
-            messageInput.required = false;
-            messageRequired.textContent = '';
-            messageInput.placeholder = 'Dear Guest,\n\n(Optional - for preview or fallback. Template message will be used when sending.)';
+            // Message is now required for templates (to store template content)
+            messageInput.required = true;
+            messageRequired.textContent = '*';
+            messageInput.placeholder = 'Select a template above to auto-populate this field with the WhatsApp template content...';
+
+            // Show template help text
+            document.getElementById('messageHelpPlain').style.display = 'none';
+            document.getElementById('messageHelpTemplate').style.display = 'inline';
         } else {
             // Plain text mode
             templateFields.style.display = 'none';
@@ -380,6 +424,10 @@ RSVP: Please confirm your attendance by clicking the link below."></textarea>
             messageInput.required = true;
             messageRequired.textContent = '*';
             messageInput.placeholder = 'Dear Guest,\n\nWe are delighted to invite you to celebrate the wedding of...\n\nRSVP: ...';
+
+            // Show plain help text
+            document.getElementById('messageHelpPlain').style.display = 'inline';
+            document.getElementById('messageHelpTemplate').style.display = 'none';
         }
     }
 

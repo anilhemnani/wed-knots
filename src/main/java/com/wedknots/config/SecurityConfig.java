@@ -63,7 +63,6 @@ public class SecurityConfig {
         return new AuthenticationSuccessHandler() {
             @Override
             public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-                // Determine user role and set cookie
                 String userRole = "GUEST";
                 String redirectUrl = "/invitations";
 
@@ -72,7 +71,7 @@ public class SecurityConfig {
                     redirectUrl = "/admin/dashboard";
                 } else if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_HOST"))) {
                     userRole = "HOST";
-                    redirectUrl = "/host/dashboard";
+                    redirectUrl = "/host/events"; // use events list as landing for host
                 }
 
                 // Store the user's role in a cookie for future redirects
@@ -112,7 +111,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/login/**", "/register", "/css/**", "/js/**", "/set-password", "/set-password-host", "/public/**", "/api/whatsapp/webhook/**", "/privacy-policy", "/contact/**", "/icon-test", "/icon", "/icon-debug").permitAll()
+                .requestMatchers("/", "/login/**", "/register", "/css/**", "/js/**", "/set-password", "/set-password-host", "/public/**", "/api/whatsapp/webhook/**", "/privacy-policy", "/contact/**", "/icon-test", "/icon", "/icon-debug", "/forbidden", "/error").permitAll()
                 .requestMatchers("/h2-console/**").hasRole("ADMIN")  // Protect H2 console - admin only
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/host/**").hasRole("HOST")

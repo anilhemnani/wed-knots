@@ -207,6 +207,26 @@
             </div>
         </div>
 
+        <!-- Reply Form -->
+        <div class="message-detail-card">
+            <h5 class="mb-4">
+                <i class="bi bi-reply"></i> Reply to <strong th:text="${guest.contactName}"></strong>
+            </h5>
+            <form id="replyForm" class="reply-form">
+                <div class="form-group mb-3">
+                    <label for="replyContent" class="form-label">Your Reply</label>
+                    <textarea class="form-control" id="replyContent" name="replyContent" rows="4"
+                              placeholder="Type your reply message here..." required></textarea>
+                    <small class="form-text text-muted">Your message will be sent to the guest via WhatsApp if available.</small>
+                </div>
+                <div id="replyStatus"></div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-send"></i> Send Reply
+                </button>
+                <button type="reset" class="btn btn-secondary">Clear</button>
+            </form>
+        </div>
+
         <!-- Conversation Context -->
         <div th:if="${!conversation.isEmpty()}" class="conversation-context">
             <h6><i class="bi bi-chat-left-text"></i> Conversation Context (Last 5 messages)</h6>
@@ -250,6 +270,71 @@
     const messageId = <span th:text="${message.id}"></span>;
     const eventId = <span th:text="${event.id}"></span>;
     const guestId = <span th:text="${guest.id}"></span>;
+
+    // Handle reply form submission
+    document.getElementById('replyForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const replyContent = document.getElementById('replyContent').value.trim();
+
+        if (!replyContent) {
+            showReplyStatus('Please enter a message', 'warning');
+            return;
+        }
+
+        const payload = {
+            eventId: eventId,
+            guestId: guestId,
+            messageContent: replyContent
+        };
+
+        fetch('/api/messages/send-to-guest', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Failed to send reply');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            showReplyStatus('Reply sent successfully!', 'success');
+            document.getElementById('replyContent').value = '';
+            // Reload to show new message
+            setTimeout(() => location.reload(), 1500);
+        })
+        .catch(error => {
+            console.error('Error sending reply:', error);
+            showReplyStatus(`Failed to send reply: ${error.message}`, 'danger');
+        });
+    });
+
+    function showReplyStatus(message, type) {
+        const statusDiv = document.getElementById('replyStatus');
+        const alertId = 'alert-' + Date.now();
+        const alertHtml = `
+            <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        statusDiv.innerHTML = alertHtml;
+
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            const element = document.getElementById(alertId);
+            if (element) {
+                element.remove();
+            }
+        }, 5000);
+    }
 
     function toggleReadStatus() {
         const endpoint = <span th:text="${message.read ? '/inbox/messages/' + message.id + '/mark-unread' : '/inbox/messages/' + message.id + '/mark-read'}"></span>;

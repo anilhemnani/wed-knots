@@ -31,6 +31,7 @@ public class HostMessagesController {
 
     /**
      * View all WhatsApp messages for host's events
+     * Redirects to new inbox interface
      */
     @PreAuthorize("hasRole('HOST')")
     @GetMapping("/messages")
@@ -41,40 +42,8 @@ public class HostMessagesController {
             Authentication authentication,
             Model model) {
 
-        // Get host's events
-        String hostEmail = authentication.getName();
-        List<WeddingEvent> hostEvents = weddingEventRepository.findByHostEmail(hostEmail);
-
-        if (hostEvents.isEmpty()) {
-            model.addAttribute("error", "No events found for your account");
-            model.addAttribute("events", hostEvents);
-            return "host/messages";
-        }
-
-        // If no event specified, use the first one
-        if (eventId == null && !hostEvents.isEmpty()) {
-            eventId = hostEvents.get(0).getId();
-        }
-
-        model.addAttribute("events", hostEvents);
-        model.addAttribute("selectedEventId", eventId);
-
-        if (eventId != null) {
-            // Get messages for the selected event
-            Pageable pageable = PageRequest.of(page, size);
-            Page<GuestMessage> messagesPage = messageService.getEventMessages(eventId, pageable);
-
-            model.addAttribute("messages", messagesPage.getContent());
-            model.addAttribute("currentPage", page);
-            model.addAttribute("totalPages", messagesPage.getTotalPages());
-            model.addAttribute("totalMessages", messagesPage.getTotalElements());
-
-            // Get unread count
-            long unreadCount = messageService.getUnreadMessagesCount(eventId);
-            model.addAttribute("unreadCount", unreadCount);
-        }
-
-        return "host/messages";
+        // Redirect to new inbox interface
+        return "redirect:/host/messages/inbox";
     }
 
     /**

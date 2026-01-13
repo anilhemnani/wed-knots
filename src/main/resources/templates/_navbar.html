@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Navbar Fragment</title>
+</head>
+<body>
+
+<!-- Admin Navbar -->
+<nav th:fragment="adminNav" class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/admin/dashboard">
+            <img src="/icon" height="30" class="me-2" alt="WedKnots">
+            WedKnots – The Smart Wedding Concierge
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/admin/reports">Reports</a></li>
+                <li class="nav-item"><a class="nav-link" href="/admin/messages">Messages</a></li>
+                <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Host Navbar -->
+<nav th:fragment="hostNav" class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/host/dashboard">
+            <img src="/icon" height="30" class="me-2" alt="WedKnots">
+            WedKnots – The Smart Wedding Concierge
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/host/dashboard">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/host/messages"><i class="bi bi-chat-dots"></i> Messages</a></li>
+                <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Guest Navbar -->
+<nav th:fragment="guestNav" class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/invitations">
+            <img src="/icon" height="30" class="me-2" alt="WedKnots">
+            WedKnots – The Smart Wedding Concierge
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/invitations">My Invitations</a></li>
+                <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Public/Index Navbar (simple, non-role-aware) -->
+<nav th:fragment="publicNav" class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/" style="font-size: 1rem;">
+            <img src="/icon" alt="WedKnots" height="35" class="me-2">
+            WedKnots – The Smart Wedding Concierge
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                <li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>
+                <li class="nav-item"><a class="nav-link" href="#how-it-works">How It Works</a></li>
+                <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+                <li class="nav-item"><a class="nav-link" href="/privacy-policy">Privacy</a></li>
+
+                <!-- Login dropdown (always visible on public nav) -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle btn btn-outline-light btn-sm ms-2" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-box-arrow-in-right"></i> Login
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/login/guest"><i class="bi bi-person"></i> Guest</a></li>
+                        <li><a class="dropdown-item" href="/login/host"><i class="bi bi-house-door"></i> Host</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/login/admin"><i class="bi bi-shield-lock"></i> Admin</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+</body>
+</html>
+

@@ -1,6 +1,7 @@
 package com.wedknots.service;
 
 import com.wedknots.model.Guest;
+import com.wedknots.model.GuestMessage;
 import com.wedknots.model.Invitation;
 import com.wedknots.model.InvitationLog;
 import com.wedknots.repository.GuestRepository;
@@ -32,6 +33,9 @@ public class InvitationLogService {
 
     @Autowired
     private WhatsAppService whatsAppService;
+
+    @Autowired
+    private MessageService messageService;
 
     @Transactional
     public List<InvitationLog> sendInvitationToGuests(Long invitationId, List<Long> guestIds, String sentBy) {
@@ -77,7 +81,26 @@ public class InvitationLogService {
                     .build();
 
             // Send WhatsApp message using invitation's message type and template settings
+            String whatsappMessageId = null;
+            String composedMessage = null;
             try {
+                // Build the message body we send (plain or template preview)
+                if (invitation.getMessageType() != null && invitation.getMessageType().equals("TEMPLATE")) {
+                    // For template messages, use the stored message field which should contain the template preview
+                    // If message is empty, build a basic preview from title
+                    if (invitation.getMessage() != null && !invitation.getMessage().trim().isEmpty()) {
+                        composedMessage = invitation.getMessage();
+                    } else {
+                        composedMessage = invitation.getTitle() + "\n\n" +
+                                "(WhatsApp Template: " + invitation.getTemplateName() + ")\n" +
+                                "Note: The actual template content was sent via WhatsApp but not stored for display.";
+                    }
+                } else {
+                    // For plain text messages, combine title and message
+                    composedMessage = (invitation.getTitle() != null ? invitation.getTitle() + "\n\n" : "") +
+                            (invitation.getMessage() != null ? invitation.getMessage() : "");
+                }
+
                 boolean sent = whatsAppService.sendMessage(
                         invitation.getEvent(), // Pass the event for Cloud API configuration
                         guest.getContactPhone(),
@@ -92,6 +115,28 @@ public class InvitationLogService {
                 if (sent) {
                     log.setDeliveryStatus("SENT");
                     log.setDeliveryTimestamp(LocalDateTime.now());
+                    log.setWhatsappMessageText(composedMessage);
+
+                    // Create GuestMessage record so invitation appears in messages
+                    try {
+                        String messageText = composedMessage != null ? composedMessage : (invitation.getTitle() + "\n\n" + invitation.getMessage());
+                        logger.info("Creating GuestMessage for guest {} with text: {}", guestId, messageText.substring(0, Math.min(50, messageText.length())) + "...");
+
+                        GuestMessage guestMessage = messageService.createOutboundMessage(
+                            invitation.getEvent(),
+                            guest,
+                            messageText
+                        );
+                        guestMessage.setStatus(GuestMessage.MessageStatus.SENT);
+                        guestMessage.setMessageType(GuestMessage.MessageType.TEXT);
+                        messageService.updateMessage(guestMessage);
+
+                        logger.info("✓ Successfully created GuestMessage record ID {} for invitation to guest {} in event {}",
+                            guestMessage.getId(), guestId, invitation.getEvent().getId());
+                    } catch (Exception msgEx) {
+                        logger.error("✗ Failed to create GuestMessage for invitation to guest {}: {}", guestId, msgEx.getMessage(), msgEx);
+                        // Don't fail the invitation send if message record creation fails
+                    }
                 } else {
                     log.setDeliveryStatus("FAILED");
                     log.setErrorMessage("Failed to send WhatsApp message");
@@ -159,6 +204,20 @@ public class InvitationLogService {
                 log.setDeliveryStatus("SENT");
                 log.setDeliveryTimestamp(LocalDateTime.now());
                 log.setErrorMessage(null);
+
+                // Create GuestMessage record for retry success
+                try {
+                    GuestMessage guestMessage = messageService.createOutboundMessage(
+                        log.getInvitation().getEvent(),
+                        log.getGuest(),
+                        log.getInvitation().getTitle() + "\n\n" + log.getInvitation().getMessage()
+                    );
+                    guestMessage.setStatus(GuestMessage.MessageStatus.SENT);
+                    messageService.updateMessage(guestMessage);
+                    logger.info("Created GuestMessage record for retried invitation to guest {}", log.getGuest().getId());
+                } catch (Exception msgEx) {
+                    logger.error("Failed to create GuestMessage for retried invitation: {}", msgEx.getMessage());
+                }
             }
         } catch (Exception e) {
             logger.error("Retry failed for log {}: {}", logId, e.getMessage());
@@ -210,6 +269,21 @@ public class InvitationLogService {
         InvitationLog savedLog = invitationLogRepository.save(log);
         logger.info("Marked invitation {} as sent externally to guest {} via {}",
                    invitationId, guestId, externalMethod);
+
+        // Create GuestMessage record for external invitation
+        try {
+            GuestMessage guestMessage = messageService.createOutboundMessage(
+                invitation.getEvent(),
+                guest,
+                "[External: " + externalMethod + "] " + invitation.getTitle() + "\n\n" + invitation.getMessage()
+            );
+            guestMessage.setStatus(GuestMessage.MessageStatus.DELIVERED);
+            messageService.updateMessage(guestMessage);
+            logger.info("Created GuestMessage record for external invitation to guest {}", guestId);
+        } catch (Exception msgEx) {
+            logger.error("Failed to create GuestMessage for external invitation: {}", msgEx.getMessage());
+        }
+
         return savedLog;
     }
 

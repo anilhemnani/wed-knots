@@ -6,33 +6,31 @@
     <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
 </head>
 <body class="bg-light">
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/">WedKnots</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="/invitations">My Invitations</a></li>
-                <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
-            </ul>
-        </div>
-    </div>
-</nav>
+<th:block th:replace="~{_navbar :: guestNav}"></th:block>
 
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <!-- Invitation Card -->
             <div class="card shadow-lg mb-4">
-                <!-- Invitation Image (if available) -->
-                <div th:if="${invitation.imageUrl}" class="card-img-top"
-                     style="height: 300px; object-fit: cover; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
-                    <img th:src="${invitation.imageUrl}" alt="Invitation" style="max-width: 100%; max-height: 100%; object-fit: cover;">
+                <!-- Invitation Image (only if available) -->
+                <div class="card-img-top position-relative"
+                     th:if="${invitation.imageUrl}"
+                     style="height:clamp(220px, 45vw, 320px); overflow:hidden; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display:flex; align-items:center; justify-content:center;">
+                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+                        <img th:src="${invitation.imageUrl}" alt="Invitation"
+                             style="width:100%; height:100%; object-fit:cover; display:block;">
+                        <a th:href="${invitation.imageUrl}" target="_blank" class="stretched-link"
+                           th:attr="aria-label=${'Open image for ' + event.name}"></a>
+                    </div>
+                    <span class="badge bg-success-subtle text-success border position-absolute top-0 end-0 m-3"
+                          th:if="${invitation.whatsAppMessage != null}">WhatsApp invitation</span>
+                </div>
+                <div class="px-4 pt-2 pb-0 small text-muted" th:if="${invitation.imageUrl != null and invitation.whatsAppMessage != null}">
+                    <i class="bi bi-whatsapp"></i> Invitation image sent via WhatsApp
                 </div>
 
-                <div class="card-body p-5">
+                <div class="card-body p-4 p-lg-5">
                     <!-- Event Header -->
                     <div class="text-center mb-5">
                         <h1 th:text="${event.name}" class="display-5">Wedding Name</h1>
@@ -44,8 +42,16 @@
                     <!-- Invitation Details -->
                     <div class="mb-5">
                         <h3 class="mb-3" th:text="${invitation.title}">Invitation Title</h3>
-                        <div class="alert alert-info" role="alert" th:if="${invitation.message}">
-                            <p th:text="${invitation.message}" class="mb-0"></p>
+                        <div class="card border-0 shadow-sm"
+                             th:if="${invitationLog?.whatsappMessageText != null or invitation.whatsAppMessage != null or invitation.message != null}">
+                            <div class="card-header bg-light fw-semibold d-flex align-items-center justify-content-between">
+                                <span>Invitation Message</span>
+                                <span class="badge bg-success-subtle text-success border" th:if="${invitationLog?.whatsappMessageText != null or invitation.whatsAppMessage != null}">WhatsApp invitation</span>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-0"
+                                   th:text="${invitationLog?.whatsappMessageText != null ? invitationLog.whatsappMessageText : (invitation.whatsAppMessage != null ? invitation.whatsAppMessage : invitation.message)}"></p>
+                            </div>
                         </div>
                     </div>
 
@@ -86,7 +92,8 @@
                                 <dd class="col-sm-8" th:text="${event.expectedGuestArrivalDate ?: 'TBD'}">Arrival</dd>
 
                                 <dt class="col-sm-4">Event Checkout Date:</dt>
-                                <dd class="col-sm-8" th:text="${event.expectedGuestDepartureDate ?: 'TBD'}">Departure</dd>
+                                <dd class="col-sm-8" th:text="${event.expectedGuestDepartureDate ?: 'TBD'}">Departure
+                                </dd>
                             </dl>
                         </div>
                     </div>
@@ -100,18 +107,42 @@
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <p class="text-muted">Current Status:</p>
-                                    <span th:if="${rsvp != null and rsvp.status != null and rsvp.status.name() == 'ACCEPTED'}" class="badge bg-success fs-6" th:text="${rsvp.status}"></span>
-                                    <span th:if="${rsvp != null and rsvp.status != null and rsvp.status.name() == 'DECLINED'}" class="badge bg-danger fs-6" th:text="${rsvp.status}"></span>
-                                    <span th:if="${rsvp != null and rsvp.status != null and rsvp.status.name() == 'MAYBE'}" class="badge bg-info fs-6" th:text="${rsvp.status}"></span>
-                                    <span th:if="${rsvp == null or rsvp.status == null or rsvp.status.name() == 'PENDING'}" class="badge bg-warning fs-6">PENDING</span>
+                                    <span th:if="${rsvp != null and rsvp.status != null and rsvp.status.name() == 'ACCEPTED'}"
+                                          class="badge bg-success fs-6" th:text="${rsvp.status}"></span>
+                                    <span th:if="${rsvp != null and rsvp.status != null and rsvp.status.name() == 'DECLINED'}"
+                                          class="badge bg-danger fs-6" th:text="${rsvp.status}"></span>
+                                    <span th:if="${rsvp != null and rsvp.status != null and rsvp.status.name() == 'MAYBE'}"
+                                          class="badge bg-info fs-6" th:text="${rsvp.status}"></span>
+                                    <span th:if="${rsvp == null or rsvp.status == null or rsvp.status.name() == 'PENDING'}"
+                                          class="badge bg-warning fs-6">PENDING</span>
                                 </div>
                                 <div class="col-md-6">
-                                    <p class="text-muted">Attendees: <span th:text="${rsvp != null && rsvp.attendeeCount != null ? rsvp.attendeeCount : 0}">0</span> / <span th:text="${guest.maxAttendees}">5</span></p>
+                                    <p class="text-muted">Attendees: <span
+                                            th:text="${rsvp != null && rsvp.attendeeCount != null ? rsvp.attendeeCount : 0}">0</span>
+                                        / <span th:text="${guest.maxAttendees}">5</span></p>
                                 </div>
                             </div>
                             <div class="d-grid gap-2">
-                                <a th:href="@{/invitations/rsvp/form(guestId=${guest.id},eventId=${event.id})}" class="btn btn-primary">
+                                <a th:href="@{/invitations/rsvp/form(guestId=${guest.id},eventId=${event.id})}"
+                                   class="btn btn-primary">
                                     <i class="bi bi-pencil-square"></i> Update RSVP
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Messages Section -->
+                    <div class="card mb-5">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="bi bi-chat-dots"></i> Messages</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">Communicate with the wedding hosts. View and reply to messages in
+                                real-time.</p>
+                            <div class="d-grid gap-2">
+                                <a th:href="@{/guest/messages/event/{eventId}(eventId=${event.id}, guestId=${guest.id})}"
+                                   class="btn btn-warning">
+                                    <i class="bi bi-chat-dots"></i> View Messages
                                 </a>
                             </div>
                         </div>
@@ -123,9 +154,11 @@
                             <h5 class="mb-0"><i class="bi bi-airplane"></i> Travel Information & Attendees</h5>
                         </div>
                         <div class="card-body">
-                            <p class="text-muted mb-3">Share your travel details and provide names/ages of attendees who will be joining you.</p>
+                            <p class="text-muted mb-3">Share your travel details and provide names/ages of attendees who
+                                will be joining you.</p>
                             <div class="d-grid gap-2">
-                                <a th:href="@{/invitations/travel-info(guestId=${guest.id},eventId=${event.id})}" class="btn btn-info">
+                                <a th:href="@{/invitations/travel-info(guestId=${guest.id},eventId=${event.id})}"
+                                   class="btn btn-info">
                                     <i class="bi bi-airplane"></i> Update Travel Details & Attendees
                                 </a>
                             </div>

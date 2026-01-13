@@ -38,7 +38,7 @@ spring:
   thymeleaf:
     cache: false
 server:
-  port: 8080
+  port: 9090
   servlet:
     session:
       timeout: 30m

@@ -2,6 +2,8 @@ package com.wedknots.controller;
 
 import com.wedknots.controller.dto.WhatsAppWebhookPayload;
 import com.wedknots.model.GuestMessage;
+import com.wedknots.model.WeddingEvent;
+import com.wedknots.repository.WeddingEventRepository;
 import com.wedknots.service.MessageService;
 import com.wedknots.service.WhatsAppService;
 import org.slf4j.Logger;
@@ -16,6 +18,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Controller for handling WhatsApp Cloud API webhook callbacks
@@ -31,6 +34,9 @@ public class WhatsAppWebhookController {
 
     @Autowired
     private WhatsAppService whatsAppService;
+
+    @Autowired
+    private WeddingEventRepository weddingEventRepository;
 
     @Value("${whatsapp.webhook.verify-token:wed-knots-verify-token}")
     private String webhookVerifyToken;
@@ -132,6 +138,26 @@ public class WhatsAppWebhookController {
             return;
         }
 
+        // Extract phone number ID from metadata
+        String phoneNumberId = value.getMetadata() != null ?
+            value.getMetadata().getPhoneNumberId() : null;
+
+        if (phoneNumberId == null) {
+            logger.warn("Received message without phone number ID in metadata");
+            return;
+        }
+
+        // Find the event associated with this phone number ID
+        Optional<WeddingEvent> eventOpt = weddingEventRepository.findByWhatsappPhoneNumberId(phoneNumberId);
+
+        if (eventOpt.isEmpty()) {
+            logger.warn("Received message for WhatsApp phone number ID: {} - No associated event found. " +
+                       "Configure this phone number ID for a wedding event.", phoneNumberId);
+            return;
+        }
+
+        WeddingEvent event = eventOpt.get();
+
         for (WhatsAppWebhookPayload.Message message : value.getMessages()) {
             try {
                 logger.info("Processing incoming message from: {} with ID: {}", message.getFrom(), message.getId());
@@ -174,32 +200,21 @@ public class WhatsAppWebhookController {
                     messageContent = "[Unknown message type]";
                 }
 
-                // Convert timestamp from seconds to LocalDateTime
-                long timestamp = message.getTimestamp() != null ? message.getTimestamp() : System.currentTimeMillis() / 1000;
+                // Store the message in the database with event association
+                GuestMessage storedMessage = messageService.storeIncomingMessage(
+                    event.getId(),
+                    phoneNumber,
+                    messageContent,
+                    message.getId(),
+                    messageType,
+                    mediaUrl
+                );
 
-                logger.debug("Received {} message from {} with content: {}", messageType, phoneNumber, messageContent);
-
-                // Try to find and store the message
-                // Note: Event association depends on having a way to map phone number or sender to an event
-                // This could be improved by maintaining a mapping of WhatsApp phone number IDs to events
-                try {
-                    // TODO: Enhance this to determine the correct event from webhook metadata
-                    // For now, messages are stored and can be manually associated later
-                    // or you can implement logic to find event by:
-                    // - WhatsApp Business Account ID linked to specific event
-                    // - Phone Number ID to Event mapping
-                    // - Admin configuration
-
-                    // Attempt to store message without event for now
-                    // Hosts will need to manually associate or view by phone number
-                    logger.info("Message from {} received but event association requires configuration. Phone: {}, Content: {}",
-                        message.getId(), phoneNumber, messageContent);
-                } catch (Exception e) {
-                    logger.error("Failed to store message from {}: {}", phoneNumber, e.getMessage());
-                }
+                logger.info("Message from {} stored successfully for event '{}' (ID: {}). Content: {}",
+                    phoneNumber, event.getName(), event.getId(), messageContent);
 
             } catch (Exception e) {
-                logger.error("Error processing message", e);
+                logger.error("Error processing message from {}: {}", message.getFrom(), e.getMessage(), e);
             }
         }
     }

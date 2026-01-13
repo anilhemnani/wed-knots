@@ -6,11 +6,7 @@
     <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="/admin/dashboard">WedKnots – The Smart Wedding Concierge</a>
-  </div>
-</nav>
+<th:block th:replace="~{_navbar :: adminNav}"></th:block>
 <div class="container py-4">
   <h2 class="mb-4">Unauthorized Access Attempts (Latest 100)</h2>
   <div class="table-responsive">

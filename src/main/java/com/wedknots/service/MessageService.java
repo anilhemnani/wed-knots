@@ -235,17 +235,18 @@ public class MessageService {
 
     /**
      * Get grouped messages by guest (for inbox view)
+     * Returns a map with guest ID as key to avoid circular reference issues with Hibernate proxies
      */
-    public Map<Guest, List<GuestMessage>> getMessagesGroupedByGuest(Long eventId) {
+    public Map<Long, List<GuestMessage>> getMessagesGroupedByGuest(Long eventId) {
         WeddingEvent event = weddingEventRepository.findById(eventId)
             .orElseThrow(() -> new RuntimeException("Event not found"));
 
         List<GuestMessage> allMessages = guestMessageRepository.findByEventOrderByCreatedAtDesc(event);
 
         return allMessages.stream()
-            .filter(m -> m.getGuest() != null) // Only messages with associated guest
+            .filter(m -> m.getGuest() != null && m.getGuest().getId() != null)
             .collect(Collectors.groupingBy(
-                GuestMessage::getGuest,
+                m -> m.getGuest().getId(),
                 Collectors.toList()
             ));
     }
@@ -339,5 +340,43 @@ public class MessageService {
         List<GuestMessage> pageContent = list.subList(start, end);
         return new org.springframework.data.domain.PageImpl<>(pageContent, pageable, list.size());
     }
+
+    /**
+     * Create and store an outbound message from host to guest
+     */
+    public GuestMessage createOutboundMessage(WeddingEvent event, Guest guest, String messageContent) {
+        GuestMessage message = GuestMessage.builder()
+            .event(event)
+            .guest(guest)
+            .guestPhoneNumber(guest.getContactPhone())
+            .messageContent(messageContent)
+            .direction(GuestMessage.MessageDirection.OUTBOUND)
+            .messageType(GuestMessage.MessageType.TEXT)
+            .status(GuestMessage.MessageStatus.PENDING)
+            .isRead(false)
+            .build();
+
+        GuestMessage saved = guestMessageRepository.save(message);
+        logger.info("Outbound message created for guest {} in event {}. Message ID: {}",
+            guest.getId(), event.getId(), saved.getId());
+        return saved;
+    }
+
+    /**
+     * Update message (used for updating status, error messages, etc.)
+     */
+    public GuestMessage updateMessage(GuestMessage message) {
+        GuestMessage updated = guestMessageRepository.save(message);
+        logger.debug("Message {} updated with status: {}", updated.getId(), updated.getStatus());
+        return updated;
+    }
+
+    /**
+     * Save a message to database
+     */
+    public GuestMessage saveMessage(GuestMessage message) {
+        return guestMessageRepository.save(message);
+    }
 }
+
 

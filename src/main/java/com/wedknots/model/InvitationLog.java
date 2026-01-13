@@ -53,9 +53,11 @@ public class InvitationLog {
     @Column(name = "external_method_description")
     private String externalMethodDescription; // Description of how external invitation was sent (e.g., "Email", "Phone Call", "In-person")
 
+    @Column(name = "whatsapp_message_text", columnDefinition = "TEXT")
+    private String whatsappMessageText; // Stored WhatsApp message body actually sent
+
     @PrePersist
     protected void onCreate() {
         sentAt = LocalDateTime.now();
     }
 }
-

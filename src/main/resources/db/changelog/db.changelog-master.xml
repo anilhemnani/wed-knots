@@ -481,4 +481,19 @@
             <column name="created_at"/>
         </createIndex>
     </changeSet>
+
+    <!-- Add unique constraint on whatsapp_phone_number_id for webhook routing -->
+    <changeSet id="add-whatsapp-phone-id-unique-constraint" author="system">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="wedding_event_tbl"/>
+        </preConditions>
+        <addUniqueConstraint tableName="wedding_event_tbl" columnNames="whatsapp_phone_number_id"
+                           constraintName="uq_whatsapp_phone_number_id"/>
+        <createIndex indexName="idx_whatsapp_phone_number_id" tableName="wedding_event_tbl">
+            <column name="whatsapp_phone_number_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Add whatsapp_message_text column to invitation_log_tbl -->
+    <include file="db/changelog/changelog-003-add-whatsapp-message-text.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

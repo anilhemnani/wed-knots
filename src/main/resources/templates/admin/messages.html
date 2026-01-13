@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - WhatsApp Messages</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        .message-card {
+            border-left: 4px solid #0d6efd;
+            transition: all 0.3s;
+        }
+        .message-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .message-card.inbound {
+            border-left-color: #0d6efd;
+            background-color: #e7f3ff;
+        }
+        .message-card.outbound {
+            border-left-color: #28a745;
+            background-color: #e8f5e9;
+        }
+        .message-card.failed {
+            border-left-color: #dc3545;
+            background-color: #ffe5e5;
+        }
+        .stats-card {
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .badge-status {
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+        }
+        .event-selector {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 100;
+            padding: 15px 0;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .message-content {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .filter-btn.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #dee2e6;
+        }
+        .timeline-item {
+            position: relative;
+            padding-bottom: 20px;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #0d6efd;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px #dee2e6;
+        }
+    </style>
+</head>
+<body>
+<th:block th:replace="~{_navbar :: adminNav}"></th:block>
+
+<div class="container-fluid">
+    <!-- Event Selector -->
+    <div class="event-selector">
+        <div class="row">
+            <div class="col-md-5">
+                <h3><i class="bi bi-chat-dots"></i> WhatsApp Messages</h3>
+            </div>
+            <div class="col-md-5">
+                <select id="eventFilter" class="form-select">
+                    <option value="">All Events</option>
+                    <!-- Populated via JavaScript -->
+                </select>
+            </div>
+            <div class="col-md-2 text-end">
+                <button onclick="goBack()" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mt-4 mb-4">
+        <div class="col-md-3">
+            <div class="stats-card bg-primary text-white">
+                <div class="stats-number" id="totalMessages">0</div>
+                <div>Total Messages</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card bg-success text-white">
+                <div class="stats-number" id="sentMessages">0</div>
+                <div>Sent Messages</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card bg-warning text-dark">
+                <div class="stats-number" id="pendingMessages">0</div>
+                <div>Pending</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card bg-danger text-white">
+                <div class="stats-number" id="failedMessages">0</div>
+                <div>Failed</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary filter-btn active" data-filter="all">All</button>
+                <button type="button" class="btn btn-outline-primary filter-btn" data-filter="INBOUND">From Guests</button>
+                <button type="button" class="btn btn-outline-primary filter-btn" data-filter="OUTBOUND">To Guests</button>
+                <button type="button" class="btn btn-outline-danger filter-btn" data-filter="FAILED">Failed</button>
+            </div>
+            <div class="float-end">
+                <input type="search" id="searchMessages" class="form-control" placeholder="Search messages...">
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages List -->
+    <div class="row">
+        <div class="col-md-12">
+            <div id="messagesContainer">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">Loading messages...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <nav>
+                <ul class="pagination justify-content-center" id="pagination"></ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Message Detail Modal -->
+<div class="modal fade" id="messageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Message Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content loaded via JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="retryBtn" style="display: none;">Retry Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let currentPage = 0;
+    let currentFilter = 'all';
+    let currentEventId = '';
+    let currentSearch = '';
+
+    // Get URL parameter
+    function getUrlParameter(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+    }
+
+    // Go back to previous page
+    function goBack() {
+        // If there's a referrer and it's from the same site, go back
+        if (document.referrer && document.referrer.includes(window.location.hostname)) {
+            window.history.back();
+        } else {
+            // Otherwise go to dashboard
+            window.location.href = '/admin/dashboard';
+        }
+    }
+
+    // Load events for filter
+    function loadEvents() {
+        fetch('/api/admin/events')
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('eventFilter');
+                data.forEach(event => {
+                    const option = document.createElement('option');
+                    option.value = event.id;
+                    option.textContent = event.name;
+                    select.appendChild(option);
+                });
+
+                // Check if eventId is in URL parameters
+                const eventIdParam = getUrlParameter('eventId');
+                if (eventIdParam) {
+                    // Auto-select the event from URL parameter
+                    select.value = eventIdParam;
+                    currentEventId = eventIdParam;
+                    loadMessages();
+                    updateStatistics();
+                }
+            })
+            .catch(error => console.error('Error loading events:', error));
+    }
+
+    // Load messages
+    function loadMessages() {
+        let url = `/api/admin/messages?page=${currentPage}&size=20`;
+        if (currentEventId) url += `&eventId=${currentEventId}`;
+        if (currentFilter !== 'all') url += `&direction=${currentFilter}`;
+        if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                displayMessages(data);
+                updateStatistics();
+            })
+            .catch(error => {
+                console.error('Error loading messages:', error);
+                document.getElementById('messagesContainer').innerHTML =
+                    '<div class="alert alert-danger">Failed to load messages</div>';
+            });
+    }
+
+    // Display messages
+    function displayMessages(data) {
+        const container = document.getElementById('messagesContainer');
+
+        if (!data.content || data.content.length === 0) {
+            container.innerHTML = '<div class="alert alert-info">No messages found</div>';
+            return;
+        }
+
+        let html = '<div class="timeline">';
+        data.content.forEach(message => {
+            const directionClass = message.direction.toLowerCase();
+            const statusBadge = getStatusBadge(message.status);
+            const timestamp = new Date(message.createdAt).toLocaleString();
+
+            html += `
+                <div class="timeline-item">
+                    <div class="message-card ${directionClass} p-3 mb-3" onclick="showMessageDetail(${message.id})">
+                        <div class="row">
+                            <div class="col-md-9">
+                                <h6 class="mb-1">
+                                    <i class="bi bi-${message.direction === 'INBOUND' ? 'arrow-down-circle' : 'arrow-up-circle'}"></i>
+                                    ${message.direction === 'INBOUND' ? 'From' : 'To'}: ${escapeHtml(message.guestPhoneNumber)}
+                                </h6>
+                                <p class="message-content mb-2">${escapeHtml(message.messageContent)}</p>
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar"></i> ${timestamp}
+                                    | <i class="bi bi-building"></i> Event ID: ${message.event.id}
+                                </small>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                ${statusBadge}
+                                ${message.whatsappMessageId ? `<br><small class="text-muted">WhatsApp ID: ${message.whatsappMessageId.substring(0, 10)}...</small>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+
+        container.innerHTML = html;
+
+        // Update pagination
+        updatePagination(data);
+    }
+
+    // Get status badge
+    function getStatusBadge(status) {
+        const badges = {
+            'PENDING': '<span class="badge bg-warning text-dark">Pending</span>',
+            'SENT': '<span class="badge bg-info">Sent</span>',
+            'DELIVERED': '<span class="badge bg-success">Delivered</span>',
+            'READ': '<span class="badge bg-primary">Read</span>',
+            'FAILED': '<span class="badge bg-danger">Failed</span>'
+        };
+        return badges[status] || `<span class="badge bg-secondary">${status}</span>`;
+    }
+
+    // Show message detail
+    function showMessageDetail(messageId) {
+        fetch(`/api/admin/messages/${messageId}`)
+            .then(response => response.json())
+            .then(message => {
+                const modalBody = document.getElementById('modalBody');
+                modalBody.innerHTML = `
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Direction:</strong><br>
+                            <span class="badge bg-${message.direction === 'INBOUND' ? 'primary' : 'success'}">
+                                ${message.direction}
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Status:</strong><br>
+                            ${getStatusBadge(message.status)}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Guest Phone:</strong><br>
+                            ${escapeHtml(message.guestPhoneNumber)}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Message Type:</strong><br>
+                            ${message.messageType}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <strong>Message Content:</strong><br>
+                            <div class="alert alert-light mt-2">
+                                ${escapeHtml(message.messageContent)}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Created:</strong><br>
+                            ${new Date(message.createdAt).toLocaleString()}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Updated:</strong><br>
+                            ${new Date(message.updatedAt).toLocaleString()}
+                        </div>
+                    </div>
+                    ${message.whatsappMessageId ? `
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <strong>WhatsApp Message ID:</strong><br>
+                            <code>${message.whatsappMessageId}</code>
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${message.errorMessage ? `
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <strong>Error Message:</strong><br>
+                            <div class="alert alert-danger mt-2">
+                                ${escapeHtml(message.errorMessage)}
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                `;
+
+                // Show retry button for failed messages
+                const retryBtn = document.getElementById('retryBtn');
+                if (message.status === 'FAILED' && message.direction === 'OUTBOUND') {
+                    retryBtn.style.display = 'block';
+                    retryBtn.onclick = () => retryMessage(messageId);
+                } else {
+                    retryBtn.style.display = 'none';
+                }
+
+                const modal = new bootstrap.Modal(document.getElementById('messageModal'));
+                modal.show();
+            })
+            .catch(error => console.error('Error loading message details:', error));
+    }
+
+    // Retry failed message
+    function retryMessage(messageId) {
+        if (confirm('Retry sending this message?')) {
+            fetch(`/api/admin/messages/${messageId}/retry`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert('Message retry initiated');
+                    loadMessages();
+                    bootstrap.Modal.getInstance(document.getElementById('messageModal')).hide();
+                })
+                .catch(error => {
+                    console.error('Error retrying message:', error);
+                    alert('Failed to retry message');
+                });
+        }
+    }
+
+    // Update statistics
+    function updateStatistics() {
+        fetch(`/api/admin/messages/statistics?eventId=${currentEventId}`)
+            .then(response => response.json())
+            .then(stats => {
+                document.getElementById('totalMessages').textContent = stats.total || 0;
+                document.getElementById('sentMessages').textContent = stats.sent || 0;
+                document.getElementById('pendingMessages').textContent = stats.pending || 0;
+                document.getElementById('failedMessages').textContent = stats.failed || 0;
+            })
+            .catch(error => console.error('Error loading statistics:', error));
+    }
+
+    // Update pagination
+    function updatePagination(data) {
+        const pagination = document.getElementById('pagination');
+        let html = '';
+
+        for (let i = 0; i < data.totalPages; i++) {
+            html += `
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="goToPage(${i}); return false;">${i + 1}</a>
+                </li>
+            `;
+        }
+
+        pagination.innerHTML = html;
+    }
+
+    // Go to page
+    function goToPage(page) {
+        currentPage = page;
+        loadMessages();
+    }
+
+    // Escape HTML
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Event listeners
+    document.getElementById('eventFilter').addEventListener('change', (e) => {
+        currentEventId = e.target.value;
+        currentPage = 0;
+        loadMessages();
+    });
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentFilter = e.target.dataset.filter;
+            currentPage = 0;
+            loadMessages();
+        });
+    });
+
+    let searchTimeout;
+    document.getElementById('searchMessages').addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            currentSearch = e.target.value;
+            currentPage = 0;
+            loadMessages();
+        }, 500);
+    });
+
+    // Load on page load
+    loadEvents();
+    loadMessages();
+
+    // Auto-refresh every 30 seconds
+    setInterval(loadMessages, 30000);
+</script>
+</body>
+</html>
+
