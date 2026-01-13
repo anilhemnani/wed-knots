@@ -407,13 +407,15 @@
             ALTER TABLE rsvp_tbl ALTER COLUMN id RESTART WITH 2;
         </sql>
 
-        <!-- For PostgreSQL compatibility (if used) -->
+<!--
+        &lt;!&ndash; For PostgreSQL compatibility (if used) &ndash;&gt;
         <sql dbms="postgresql">
             SELECT setval('guest_tbl_id_seq', 2, false);
             SELECT setval('host_tbl_id_seq', 2, false);
             SELECT setval('app_user_tbl_id_seq', 2, false);
             SELECT setval('rsvp_tbl_id_seq', 2, false);
         </sql>
+-->
     </changeSet>
 
     <!-- Add external invitation support to invitation_log_tbl -->
