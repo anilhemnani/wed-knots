@@ -4,8 +4,13 @@ setlocal enabledelayedexpansion
 REM Check for administrator privileges and elevate if needed
 net session >nul 2>&1
 if %errorLevel% neq 0 (
-    echo Requesting administrator privileges...
-    powershell -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    echo ERROR: This script requires administrator privileges.
+    echo Attempting to elevate...
+    powershell -Command "Start-Process -FilePath '%~f0' -Verb RunAs" 2>nul
+    if %errorLevel% neq 0 (
+        echo ERROR: Failed to elevate privileges. Please run this script as administrator.
+        pause
+    )
     exit /b
 )
 
@@ -117,6 +122,7 @@ set "JAR_FILE="
 for /f "delims=" %%J in ('dir /b "%APP_ROOT%\app\wed-knots-*.jar" 2^>nul') do set "JAR_FILE=%APP_ROOT%\app\%%J"
 if not defined JAR_FILE (
   echo ERROR: Spring Boot jar not found in app\ folder.
+  pause
   exit /b 1
 )
 
