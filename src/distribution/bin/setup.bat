@@ -39,16 +39,16 @@ if exist "%PARENT_ENV%" (
 )
 
 REM Prompt interactive (show defaults)
-call :promptValue SPRING_PROFILES_ACTIVE
-call :promptValue JASYPT_ENCRYPTOR_PASSWORD
-call :promptValue DATABASE_URL
-call :promptValue DATABASE_USERNAME
-call :promptValue DATABASE_PASSWORD
-call :promptValue PORT
-call :promptValue LOG_LEVEL
-call :promptValue LOG_FILE
-call :promptValue WHATSAPP_VERIFY_TOKEN
-call :promptValue WHATSAPP_APP_SECRET
+call :promptValue "SPRING_PROFILES_ACTIVE" "!SPRING_PROFILES_ACTIVE!"
+call :promptValue "JASYPT_ENCRYPTOR_PASSWORD" "!JASYPT_ENCRYPTOR_PASSWORD!"
+call :promptValue "DATABASE_URL" "!DATABASE_URL!"
+call :promptValue "DATABASE_USERNAME" "!DATABASE_USERNAME!"
+call :promptValue "DATABASE_PASSWORD" "!DATABASE_PASSWORD!"
+call :promptValue "PORT" "!PORT!"
+call :promptValue "LOG_LEVEL" "!LOG_LEVEL!"
+call :promptValue "LOG_FILE" "!LOG_FILE!"
+call :promptValue "WHATSAPP_VERIFY_TOKEN" "!WHATSAPP_VERIFY_TOKEN!"
+call :promptValue "WHATSAPP_APP_SECRET" "!WHATSAPP_APP_SECRET!"
 
 REM Write overrides to child config.env
 (
@@ -74,12 +74,13 @@ exit /b 0
 
 
 :promptValue
-set "NAME=%~1"
-REM Get the current value of the variable using call set
-call set "CURRENT=!%NAME%!"
-set /p INPUT="!NAME! [!CURRENT!]: "
+setlocal enabledelayedexpansion
+set "VAR_NAME=%~1"
+set "VAR_VALUE=%~2"
+set /p INPUT="!VAR_NAME! [!VAR_VALUE!]: "
 if not "!INPUT!"=="" (
-  set "%NAME%=!INPUT!"
+  endlocal & set "%VAR_NAME%=!INPUT!" & exit /b 0
+) else (
+  endlocal & exit /b 0
 )
-exit /b 0
 
