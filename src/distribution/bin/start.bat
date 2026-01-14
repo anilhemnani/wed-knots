@@ -95,6 +95,7 @@ REM Defaults
 if not defined SPRING_PROFILES_ACTIVE set "SPRING_PROFILES_ACTIVE=prod"
 if not defined PORT set "PORT=8080"
 if not defined LOG_FILE set "LOG_FILE=logs/wedknots.log"
+if not defined SPRING_CONFIG_LOCATION set "SPRING_CONFIG_LOCATION=file:%APP_ROOT%/config/application.yml"
 
 REM --- Delete and recreate WedKnots service ---
 echo Deleting and recreating WedKnots service...
@@ -154,6 +155,7 @@ if "%1"=="service" (
   REM Running as service - start in background and monitor
   echo Starting in background mode (service)...
   start "WedKnots" /B java -Xms512m -Xmx1024m ^
+    -Dspring.config.location="%SPRING_CONFIG_LOCATION%" ^
     -Dspring.profiles.active=%SPRING_PROFILES_ACTIVE% ^
     -Dspring.datasource.url="%DATABASE_URL%" ^
     -Dspring.datasource.username="%DATABASE_USERNAME%" ^
@@ -183,6 +185,7 @@ if "%1"=="service" (
   REM Default behavior and explicit app mode - run in foreground
   echo Starting in foreground mode (console - app mode)...
   java -Xms512m -Xmx1024m ^
+    -Dspring.config.location="%SPRING_CONFIG_LOCATION%" ^
     -Dspring.profiles.active=%SPRING_PROFILES_ACTIVE% ^
     -Dspring.datasource.url="%DATABASE_URL%" ^
     -Dspring.datasource.username="%DATABASE_USERNAME%" ^
