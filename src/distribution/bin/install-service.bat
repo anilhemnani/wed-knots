@@ -4,14 +4,14 @@ setlocal enabledelayedexpansion
 REM ==========================================
 REM WedKnots - Install/Reinstall Windows Service
 REM ==========================================
-REM Creates Windows service that automatically runs a specific
-REM version of WedKnots installed in C:\hosting\wedknots
-REM If no version specified, uses the latest version
+REM Creates Windows service that automatically runs WedKnots
+REM Uses the version from which this script is invoked
+REM Supports overriding with specific version or latest
 REM
-REM Usage: install-service.bat                    (use latest version)
+REM Usage: install-service.bat                    (use current version)
+REM        install-service.bat latest             (use latest version)
 REM        install-service.bat 1.0.3              (use specific version)
 REM        install-service.bat /uninstall         (remove service only)
-REM        install-service.bat 1.0.3 /uninstall   (remove service only)
 
 REM Check for administrator privileges
 net session >nul 2>&1
@@ -32,14 +32,31 @@ set "SERVICE_NAME=WedKnots"
 set "DISPLAY_NAME=WedKnots Application Service"
 set "HOSTING_ROOT=C:\hosting\wedknots"
 set "INSTALL_SCRIPT=%~dp0install-service.ps1"
-set "REQUESTED_VERSION=%~1"
 
-REM Check for /uninstall flag in any argument
+REM Detect current version from script location
+REM Script is in: C:\hosting\wedknots\wed-knots-X.X.X\bin\install-service.bat
+REM So parent of parent is the version folder
+for %%I in ("%~dp0..") do set "CURRENT_VERSION_PATH=%%~fI"
+for %%I in ("%CURRENT_VERSION_PATH%") do set "CURRENT_VERSION_NAME=%%~nxI"
+
+REM Extract version number from folder name (wed-knots-1.0.3 -> 1.0.3)
+set "CURRENT_VERSION=%CURRENT_VERSION_NAME:wed-knots-=%"
+
+REM Parse command line arguments
+set "REQUESTED_VERSION=%CURRENT_VERSION%"
 set "UNINSTALL_FLAG="
-if /i "%~1"=="/uninstall" (
+
+REM Check first argument
+if /i "%~1"=="latest" (
+  set "REQUESTED_VERSION=latest"
+) else if /i "%~1"=="/uninstall" (
   set "UNINSTALL_FLAG=1"
-  set "REQUESTED_VERSION="
-) else if /i "%~2"=="/uninstall" (
+) else if not "%~1"=="" (
+  set "REQUESTED_VERSION=%~1"
+)
+
+REM Check second argument for uninstall flag
+if /i "%~2"=="/uninstall" (
   set "UNINSTALL_FLAG=1"
 )
 
@@ -66,11 +83,8 @@ echo ==========================================
 echo Service Name: %SERVICE_NAME%
 echo Display Name: %DISPLAY_NAME%
 echo Hosting Root: %HOSTING_ROOT%
-if defined REQUESTED_VERSION (
-  echo Requested Version: %REQUESTED_VERSION%
-) else (
-  echo Version: Latest (will be auto-detected^)
-)
+echo Current Version: %CURRENT_VERSION_NAME%
+echo Requested Version: %REQUESTED_VERSION%
 echo.
 
 REM Create the PowerShell installation script
@@ -139,7 +153,7 @@ set "PS_SCRIPT=%INSTALL_SCRIPT%"
 (
     echo # WedKnots Windows Service Installation Script
     echo # This script installs/reinstalls the WedKnots service
-    echo # It uses the specified version or finds the latest version
+    echo # It uses the specified version or the current version
     echo.
     echo $ServiceName = "%SERVICE_NAME%"
     echo $DisplayName = "%DISPLAY_NAME%"
@@ -147,8 +161,15 @@ set "PS_SCRIPT=%INSTALL_SCRIPT%"
     echo $RequestedVersion = "%REQUESTED_VERSION%"
     echo.
     echo # Find version folder
-    echo if ($RequestedVersion -and $RequestedVersion -ne "") {
-    echo     Write-Host "Looking for specified version: $RequestedVersion" -ForegroundColor Cyan
+    echo if ($RequestedVersion -eq "latest") {
+    echo     Write-Host "Auto-detecting latest version..." -ForegroundColor Cyan
+    echo     $VersionFolder = Get-ChildItem -Path $HostingRoot -Directory -Filter "wed-knots-*" ^| Sort-Object Name -Descending ^| Select-Object -First 1
+    echo     if ($null -eq $VersionFolder) {
+    echo         Write-Error "No wed-knots version folders found in $HostingRoot"
+    echo         exit 1
+    echo     }
+    echo } else if ($RequestedVersion -and $RequestedVersion -ne "") {
+    echo     Write-Host "Looking for version: $RequestedVersion" -ForegroundColor Cyan
     echo     $VersionFolder = Get-ChildItem -Path $HostingRoot -Directory -Filter "wed-knots-$RequestedVersion" ^| Select-Object -First 1
     echo     if ($null -eq $VersionFolder) {
     echo         Write-Error "Version not found: wed-knots-$RequestedVersion"
@@ -158,12 +179,8 @@ set "PS_SCRIPT=%INSTALL_SCRIPT%"
     echo         exit 1
     echo     }
     echo } else {
-    echo     Write-Host "Auto-detecting latest version..." -ForegroundColor Cyan
-    echo     $VersionFolder = Get-ChildItem -Path $HostingRoot -Directory -Filter "wed-knots-*" ^| Sort-Object Name -Descending ^| Select-Object -First 1
-    echo     if ($null -eq $VersionFolder) {
-    echo         Write-Error "No wed-knots version folders found in $HostingRoot"
-    echo         exit 1
-    echo     }
+    echo     Write-Error "No version specified"
+    echo     exit 1
     echo }
     echo.
     echo $AppPath = $VersionFolder.FullName
