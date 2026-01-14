@@ -95,33 +95,9 @@ REM Defaults
 if not defined SPRING_PROFILES_ACTIVE set "SPRING_PROFILES_ACTIVE=prod"
 if not defined PORT set "PORT=8080"
 if not defined LOG_FILE set "LOG_FILE=logs/wedknots.log"
-if not defined SPRING_CONFIG_LOCATION set "SPRING_CONFIG_LOCATION=file:%APP_ROOT%/config/application.yml"
 
-REM --- Delete and recreate WedKnots service ---
-echo Deleting and recreating WedKnots service...
-REM First stop and remove old service
-sc stop WedKnots >nul 2>&1
-timeout /t 2 >nul
-sc delete WedKnots >nul 2>&1
-timeout /t 1 >nul
-
-REM Create service using sc with proper parameters
-sc create WedKnots binPath= "cmd.exe /c \"\"%WRAPPER_BAT%\"\"" start= auto DisplayName= "WedKnots Service" >nul 2>&1
-if %errorLevel% equ 0 (
-  echo Service created successfully.
-  sc description WedKnots "WedKnots Spring Boot Application Service"
-  sc start WedKnots >nul 2>&1
-  if %errorLevel% equ 0 (
-    echo Service started successfully.
-  ) else (
-    echo Warning: Service created but failed to start. Starting manually...
-    goto startManually
-  )
-) else (
-  echo Warning: Service creation failed. Starting application manually...
-  goto startManually
-)
-goto end
+REM Start the application manually
+goto startManually
 
 :startManually
 REM --- Stop existing Java process for this app ---
@@ -155,7 +131,6 @@ if "%1"=="service" (
   REM Running as service - start in background and monitor
   echo Starting in background mode (service)...
   start "WedKnots" /B java -Xms512m -Xmx1024m ^
-    -Dspring.config.location="%SPRING_CONFIG_LOCATION%" ^
     -Dspring.profiles.active=%SPRING_PROFILES_ACTIVE% ^
     -Dspring.datasource.url="%DATABASE_URL%" ^
     -Dspring.datasource.username="%DATABASE_USERNAME%" ^
@@ -185,7 +160,6 @@ if "%1"=="service" (
   REM Default behavior and explicit app mode - run in foreground
   echo Starting in foreground mode (console - app mode)...
   java -Xms512m -Xmx1024m ^
-    -Dspring.config.location="%SPRING_CONFIG_LOCATION%" ^
     -Dspring.profiles.active=%SPRING_PROFILES_ACTIVE% ^
     -Dspring.datasource.url="%DATABASE_URL%" ^
     -Dspring.datasource.username="%DATABASE_USERNAME%" ^
@@ -199,5 +173,4 @@ if "%1"=="service" (
     -jar "%JAR_FILE%"
 )
 
-:end
 endlocal
