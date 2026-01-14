@@ -38,7 +38,7 @@ set "WRAPPER_BAT=%PARENT_DIR%\WedKnots.bat"
   echo REM Set working directory
   echo cd /d "%APP_ROOT%"
   echo.
-  echo REM Call the actual start script
+  echo REM Call the actual start script with service parameter
   echo call "%APP_ROOT%\bin\start.bat" service
   echo endlocal
 ) > "%WRAPPER_BAT%"
@@ -124,8 +124,9 @@ echo Starting application with JAR: "%JAR_FILE%"
 echo Logging to: %LOG_FILE%
 
 REM Check if running as service (parameter passed)
-if "%1"=="service" (
-  REM Running as service - start Java in foreground and monitor
+if "%1"=="app" (
+  REM Running manually in foreground - blocking mode
+  echo Starting in foreground mode (console)...
   java -Xms512m -Xmx1024m ^
     -Dspring.profiles.active=%SPRING_PROFILES_ACTIVE% ^
     -Dspring.datasource.url="%DATABASE_URL%" ^
@@ -138,9 +139,10 @@ if "%1"=="service" (
     -Dwhatsapp.webhook.verify-token="%WHATSAPP_VERIFY_TOKEN%" ^
     -Dwhatsapp.webhook.app-secret="%WHATSAPP_APP_SECRET%" ^
     -jar "%JAR_FILE%"
-) else (
-  REM Running manually - start in background and monitor
-  start "WedKnots" java -Xms512m -Xmx1024m ^
+) else if "%1"=="service" (
+  REM Running as service - start in background and monitor
+  echo Starting in background mode (service)...
+  start "WedKnots" /B java -Xms512m -Xmx1024m ^
     -Dspring.profiles.active=%SPRING_PROFILES_ACTIVE% ^
     -Dspring.datasource.url="%DATABASE_URL%" ^
     -Dspring.datasource.username="%DATABASE_USERNAME%" ^
@@ -156,7 +158,7 @@ if "%1"=="service" (
   REM Wait for process to start
   timeout /t 3 >nul
 
-  REM Monitor the Java process
+  REM Monitor the Java process - keep script alive
   echo Monitoring Java process...
   :monitor_loop
   tasklist /fi "IMAGENAME eq java.exe" 2>nul | find /i "java.exe" >nul
@@ -166,6 +168,21 @@ if "%1"=="service" (
   )
 
   echo Java process has terminated. Exiting monitor.
+) else (
+  REM Default behavior - run in foreground
+  echo No mode specified. Starting in foreground mode...
+  java -Xms512m -Xmx1024m ^
+    -Dspring.profiles.active=%SPRING_PROFILES_ACTIVE% ^
+    -Dspring.datasource.url="%DATABASE_URL%" ^
+    -Dspring.datasource.username="%DATABASE_USERNAME%" ^
+    -Dspring.datasource.password="%DATABASE_PASSWORD%" ^
+    -Dspring.datasource.driver-class-name="org.postgresql.Driver" ^
+    -Dserver.port=%PORT% ^
+    -Dlogging.file.name="%LOG_FILE%" ^
+    -Djasypt.encryptor.password="%JASYPT_ENCRYPTOR_PASSWORD%" ^
+    -Dwhatsapp.webhook.verify-token="%WHATSAPP_VERIFY_TOKEN%" ^
+    -Dwhatsapp.webhook.app-secret="%WHATSAPP_APP_SECRET%" ^
+    -jar "%JAR_FILE%"
 )
 
 :end
