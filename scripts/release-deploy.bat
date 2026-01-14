@@ -20,7 +20,7 @@ REM Get the project root directory (parent of scripts)
 cd /d "%~dp0.."
 set "PROJECT_ROOT=%CD%"
 set "MAVEN_PATH=C:\tools\apache-maven-3.9.11\bin\mvn.cmd"
-set "HOSTING_PATH=C:\hosting\wedknots"
+set "HOSTING_PATH=C:\hosting\wed-knots"
 
 REM Validate Maven is available
 if not exist "%MAVEN_PATH%" (
@@ -56,19 +56,16 @@ echo Project Root: %PROJECT_ROOT%
 echo Hosting Path: %HOSTING_PATH%
 echo ==========================================
 
-REM Step 1: Update pom.xml with release version
+REM Step 1: Update pom.xml with release version using Maven versions plugin
 echo.
-echo [STEP 1] Updating pom.xml to version %RELEASE_VERSION%...
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$content = Get-Content '%PROJECT_ROOT%\pom.xml'; " ^
-  "$content = $content -replace '<version>1\.0\.\d+-SNAPSHOT</version>', '<version>%RELEASE_VERSION%</version>'; " ^
-  "$content = $content -replace '<version>1\.0\.\d+</version>', '<version>%RELEASE_VERSION%</version>'; " ^
-  "Set-Content -Path '%PROJECT_ROOT%\pom.xml' -Value $content"
+echo [STEP 1] Updating pom.xml to version %RELEASE_VERSION% using Maven...
+cd /d "%PROJECT_ROOT%"
+call "%MAVEN_PATH%" versions:set -DnewVersion=%RELEASE_VERSION% -DgenerateBackupPoms=false
 if errorlevel 1 (
-  echo ERROR: Failed to update pom.xml
+  echo ERROR: Failed to update version using Maven
   exit /b 1
 )
-echo Version updated successfully.
+echo Version updated successfully using Maven versions plugin.
 
 REM Step 2: Build Maven package
 echo.
@@ -121,18 +118,16 @@ if errorlevel 1 (
 )
 echo Tag created and pushed successfully.
 
-REM Step 6: Update pom.xml with next snapshot version
+REM Step 6: Update pom.xml with next snapshot version using Maven versions plugin
 echo.
-echo [STEP 6] Updating pom.xml to next snapshot version %NEXT_VERSION%...
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$content = Get-Content '%PROJECT_ROOT%\pom.xml'; " ^
-  "$content = $content -replace '<version>%RELEASE_VERSION%</version>', '<version>%NEXT_VERSION%</version>'; " ^
-  "Set-Content -Path '%PROJECT_ROOT%\pom.xml' -Value $content"
+echo [STEP 6] Updating pom.xml to next snapshot version %NEXT_VERSION% using Maven...
+cd /d "%PROJECT_ROOT%"
+call "%MAVEN_PATH%" versions:set -DnewVersion=%NEXT_VERSION% -DgenerateBackupPoms=false
 if errorlevel 1 (
   echo ERROR: Failed to update pom.xml to snapshot version
   exit /b 1
 )
-echo Snapshot version updated successfully.
+echo Snapshot version updated successfully using Maven versions plugin.
 
 REM Step 7: Commit snapshot version to Git
 echo.
