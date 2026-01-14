@@ -61,11 +61,7 @@ if not defined LOG_FILE set "LOG_FILE=logs/wedknots.log"
 
 REM --- Delete and recreate WedKnots service ---
 echo Deleting and recreating WedKnots service...
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "try { Stop-Service -Name 'WedKnots' -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2 } catch {} ; ^
-   try { Remove-Service -Name 'WedKnots' -Force -ErrorAction SilentlyContinue } catch {} ; ^
-   New-Service -Name 'WedKnots' -BinaryPathName 'cmd.exe /c \"%WRAPPER_BAT%\"' -DisplayName 'WedKnots Service' -StartupType Automatic -ErrorAction SilentlyContinue ; ^
-   Start-Service -Name 'WedKnots' -ErrorAction SilentlyContinue"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Stop-Service -Name 'WedKnots' -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2 } catch {} ; try { Remove-Service -Name 'WedKnots' -Force -ErrorAction SilentlyContinue } catch {} ; New-Service -Name 'WedKnots' -BinaryPathName 'cmd.exe /c \"%WRAPPER_BAT%\"' -DisplayName 'WedKnots Service' -StartupType Automatic -ErrorAction SilentlyContinue ; Start-Service -Name 'WedKnots' -ErrorAction SilentlyContinue"
 echo Service recreation completed.
 
 REM --- Stop existing Java process for this app ---
