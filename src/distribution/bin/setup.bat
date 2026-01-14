@@ -75,7 +75,9 @@ exit /b 0
 
 :promptValue
 set "NAME=%~1"
-set /p INPUT="!NAME! [!%NAME%!]: "
+REM Get the current value of the variable using call set
+call set "CURRENT=!%NAME%!"
+set /p INPUT="!NAME! [!CURRENT!]: "
 if not "!INPUT!"=="" (
   set "%NAME%=!INPUT!"
 )
