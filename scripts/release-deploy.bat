@@ -81,11 +81,16 @@ echo Maven build completed successfully.
 REM Step 3: Unzip distribution to hosting directory
 echo.
 echo [STEP 3] Unzipping distribution to %HOSTING_PATH%...
-if exist "%HOSTING_PATH%" (
-  powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "Get-ChildItem '%HOSTING_PATH%' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
-)
 if not exist "%HOSTING_PATH%" mkdir "%HOSTING_PATH%"
+
+REM Delete only the specific version folder if it exists
+set "VERSION_DIR=%HOSTING_PATH%\wed-knots-%RELEASE_VERSION%"
+if exist "%VERSION_DIR%" (
+  echo Removing existing version directory: %VERSION_DIR%
+  powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "Remove-Item -Path '%VERSION_DIR%' -Recurse -Force -ErrorAction SilentlyContinue"
+)
+
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "Expand-Archive -Path '%PROJECT_ROOT%\target\wed-knots-%RELEASE_VERSION%.zip' -DestinationPath '%HOSTING_PATH%' -Force"
 if errorlevel 1 (
