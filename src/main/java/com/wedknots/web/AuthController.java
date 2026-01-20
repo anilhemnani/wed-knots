@@ -180,16 +180,19 @@ public class AuthController {
         String mobile = request.getParameter("mobile");
         String status = userService.validateGuestLogin(lastName, mobile);
         if ("GUEST_NOT_FOUND".equals(status)) {
-            model.addAttribute("loginError", "Guest not found. Please check your family name and mobile number.");
+            model.addAttribute("loginError", "Guest not found. Please check your family name and mobile number. " +
+                    "You can use any of your registered phone numbers to login.");
             return "login_guest";
         }
 
-        // Authenticate the guest
-        Optional<Guest> guestOpt = guestRepository.findByFamilyNameIgnoreCaseAndContactPhone(lastName, mobile);
+        // Authenticate the guest using the new multi-phone system
+        Optional<Guest> guestOpt = userService.getGuestForAuthentication(lastName, mobile);
         if (guestOpt.isPresent()) {
             Guest guest = guestOpt.get();
+            // Create authentication principal using guest ID and family name
+            // This allows login with any phone number
             Authentication auth = new UsernamePasswordAuthenticationToken(
-                guest.getFamilyName() + "_" + guest.getContactPhone(),
+                guest.getFamilyName() + "_" + guest.getId(),  // Include guest ID for uniqueness
                 null,
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_GUEST"))
             );
@@ -197,8 +200,13 @@ public class AuthController {
 
             // Save authentication to session
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+            // Also store guest ID for easy access in controllers
+            request.getSession().setAttribute("guestId", guest.getId());
+            request.getSession().setAttribute("guestName", guest.getContactName());
+            request.getSession().setAttribute("guestFamilyName", guest.getFamilyName());
 
-            logger.info("Guest {} authenticated successfully", guest.getFamilyName());
+            logger.info("Guest {} (ID: {}) authenticated successfully using phone: {}",
+                       guest.getFamilyName(), guest.getId(), mobile);
         }
 
         return "redirect:/guest/dashboard";

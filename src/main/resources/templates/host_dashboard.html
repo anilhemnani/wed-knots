@@ -129,6 +129,19 @@
                                                         </div>
                                                     </div>
 
+                                                    <!-- WhatsApp RSVP Send -->
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="card h-100 border-success">
+                                                            <div class="card-body">
+                                                                <h6 class="card-title"><i class="bi bi-whatsapp"></i> Send RSVP</h6>
+                                                                <p class="card-text text-muted small">WhatsApp RSVP requests</p>
+                                                                <a th:href="@{/events/{id}/guests/whatsapp-rsvp-send(id=${event.id})}" class="btn btn-sm btn-outline-success w-100">
+                                                                    Send to Guests
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
                                                     <!-- Travel Info -->
                                                     <div class="col-md-6 col-lg-4">
                                                         <div class="card h-100 border-warning">

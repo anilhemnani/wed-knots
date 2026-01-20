@@ -27,6 +27,9 @@
             <p class="text-muted" th:text="'Bride: ' + ${event.brideName} + ' | Groom: ' + ${event.groomName}"></p>
         </div>
         <div>
+            <a th:href="@{/events/{id}/guests/whatsapp-rsvp-send(id=${event.id})}" class="btn btn-success me-2">
+                <i class="bi bi-whatsapp"></i> Send WhatsApp RSVP
+            </a>
             <a th:href="@{/host/messages(eventId=${event.id})}" class="btn btn-info">
                 <i class="bi bi-chat-dots"></i> View Messages
             </a>
@@ -67,19 +70,34 @@
                         <td th:text="${guest.familyName}"></td>
                         <td th:text="${guest.contactName}"></td>
                         <td th:text="${guest.contactEmail}"></td>
-                        <td th:text="${guest.contactPhone}"></td>
+                        <td>
+                            <span th:if="${guest.primaryPhoneNumberString != null}"
+                                  th:text="${guest.primaryPhoneNumberString}"
+                                  th:title="${guest.phoneNumbers.size() > 1 ? 'Primary • Total: ' + guest.phoneNumbers.size() : ''}"
+                                  th:class="${guest.phoneNumbers.size() > 1 ? 'cursor-help' : ''}"></span>
+                            <span th:if="${guest.primaryPhoneNumberString == null}" class="text-muted">-</span>
+                        </td>
                         <td th:text="${guest.side}"></td>
                         <td th:text="${guest.maxAttendees}"></td>
                         <td class="text-end">
-                            <a th:href="@{/guests/{id}/rsvp(id=${guest.id})}" class="btn btn-sm btn-info" title="View RSVP & Attendees">
-                                <i class="bi bi-calendar-check"></i> RSVP
+                            <button type="button"
+                                    class="btn btn-sm btn-success me-1 send-whatsapp-btn"
+                                    th:data-guest-id="${guest.id}"
+                                    th:data-guest-name="${guest.contactName}"
+                                    th:data-event-id="${event.id}"
+                                    th:disabled="${guest.primaryPhoneNumberString == null}"
+                                    th:title="${guest.primaryPhoneNumberString != null ? 'Send WhatsApp RSVP' : 'No phone number'}">
+                                <i class="bi bi-whatsapp"></i>
+                            </button>
+                            <a th:href="@{/guests/{id}/rsvp(id=${guest.id})}" class="btn btn-sm btn-info me-1" title="View RSVP & Attendees">
+                                <i class="bi bi-calendar-check"></i>
                             </a>
-                            <a th:href="@{/events/{eventId}/guests/{id}/edit(eventId=${event.id},id=${guest.id})}" class="btn btn-sm btn-warning">
-                                <i class="bi bi-pencil-fill"></i> Edit
+                            <a th:href="@{/events/{eventId}/guests/{id}/edit(eventId=${event.id},id=${guest.id})}" class="btn btn-sm btn-warning me-1">
+                                <i class="bi bi-pencil-fill"></i>
                             </a>
                             <form th:action="@{/events/{eventId}/guests/{id}/delete(eventId=${event.id},id=${guest.id})}" method="POST" style="display:inline;">
                                 <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">
-                                    <i class="bi bi-trash-fill"></i> Delete
+                                    <i class="bi bi-trash-fill"></i>
                                 </button>
                             </form>
                         </td>
@@ -90,6 +108,57 @@
         </div>
     </div>
 </div>
+
+<script>
+// Handle individual WhatsApp RSVP send buttons
+document.addEventListener('DOMContentLoaded', function() {
+    const sendButtons = document.querySelectorAll('.send-whatsapp-btn');
+
+    sendButtons.forEach(button => {
+        button.addEventListener('click', async function() {
+            const guestId = this.dataset.guestId;
+            const guestName = this.dataset.guestName;
+            const eventId = this.dataset.eventId;
+
+            if (!confirm(`Send WhatsApp RSVP request to ${guestName}?`)) {
+                return;
+            }
+
+            // Disable button and show loading state
+            this.disabled = true;
+            const originalHtml = this.innerHTML;
+            this.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+
+            try {
+                const response = await fetch(`/api/whatsapp/flow/trigger-rsvp/${eventId}/${guestId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.status === 'success') {
+                    alert(`WhatsApp RSVP request sent to ${guestName}!`);
+                    this.innerHTML = '<i class="bi bi-check-circle"></i>';
+                    this.classList.remove('btn-success');
+                    this.classList.add('btn-outline-success');
+                } else {
+                    alert(`Failed to send: ${result.message}`);
+                    this.disabled = false;
+                    this.innerHTML = originalHtml;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error occurred. Please try again.');
+                this.disabled = false;
+                this.innerHTML = originalHtml;
+            }
+        });
+    });
+});
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>

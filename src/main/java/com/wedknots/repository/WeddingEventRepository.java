@@ -19,4 +19,6 @@ public interface WeddingEventRepository extends JpaRepository<WeddingEvent, Long
     Page<WeddingEvent> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
     Optional<WeddingEvent> findByWhatsappPhoneNumberId(String whatsappPhoneNumberId);
+
+    List<WeddingEvent> findAllByWhatsappPhoneNumberId(String whatsappPhoneNumberId);
 }

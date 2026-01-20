@@ -33,15 +33,123 @@
                             <input type="email" class="form-control" id="contactEmail" name="contactEmail" th:value="${guest.contactEmail}">
                         </div>
 
-                        <div class="mb-3">
-                            <label for="contactPhone" class="form-label">Phone <span class="text-danger">*</span></label>
-                            <input type="tel" class="form-control" id="contactPhone" name="contactPhone"
-                                   th:value="${guest.contactPhone}"
-                                   placeholder="+91 98765 43210 or +1 (555) 123-4567"
-                                   pattern="^\+?[0-9\s\-\(\)]+$"
-                                   title="Please enter a valid phone number with country code (e.g., +91 9876543210)"
-                                   required>
-                            <div class="form-text">Include country code (e.g., +91 for India, +1 for US/Canada)</div>
+                        <!-- Phone Numbers Section -->
+                        <div class="card mb-4 bg-light">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-telephone-fill"></i> Phone Numbers <span class="text-danger">*</span></h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="phoneNumbersList">
+                                    <div th:if="${guest.phoneNumbers != null && !guest.phoneNumbers.isEmpty()}" th:each="phone : ${guest.phoneNumbers}">
+                                        <div class="phone-entry mb-3 p-3 border rounded bg-white">
+                                            <div class="row align-items-center">
+                                                <div class="col-md-5">
+                                                    <label class="form-label">Phone Number</label>
+                                                    <input type="tel" class="form-control phone-input"
+                                                           th:value="${phone.phoneNumber}"
+                                                           placeholder="+91 98765 43210"
+                                                           pattern="^\+?[0-9\s\-\(\)]+$"
+                                                           title="Include country code"
+                                                           readonly>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Type</label>
+                                                    <select class="form-select phone-type" th:value="${phone.phoneType}" disabled>
+                                                        <option th:selected="${phone.phoneType == 'PERSONAL'}" value="PERSONAL">Personal</option>
+                                                        <option th:selected="${phone.phoneType == 'WORK'}" value="WORK">Work</option>
+                                                        <option th:selected="${phone.phoneType == 'OTHER'}" value="OTHER">Other</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-check pt-4">
+                                                        <input class="form-check-input primary-check" type="radio"
+                                                               th:name="primaryPhoneId"
+                                                               th:value="${phone.id}"
+                                                               th:checked="${phone.isPrimary}">
+                                                        <label class="form-check-label">Primary</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- If no phones exist, show initial phone input -->
+                                    <div th:if="${guest.phoneNumbers == null || guest.phoneNumbers.isEmpty()}">
+                                        <div class="phone-entry mb-3 p-3 border rounded bg-white">
+                                            <div class="row align-items-center">
+                                                <div class="col-md-5">
+                                                    <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                                                    <input type="tel" class="form-control phone-input new-phone-input"
+                                                           name="newPhoneNumber"
+                                                           placeholder="+91 98765 43210"
+                                                           pattern="^\+?[0-9\s\-\(\)]+$"
+                                                           title="Include country code"
+                                                           required>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Type</label>
+                                                    <select class="form-select phone-type new-phone-type" name="newPhoneType">
+                                                        <option value="PERSONAL" selected>Personal</option>
+                                                        <option value="WORK">Work</option>
+                                                        <option value="OTHER">Other</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-check pt-4">
+                                                        <input class="form-check-input" type="checkbox" checked disabled>
+                                                        <label class="form-check-label">Primary</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Add more phone button -->
+                                <div th:if="${guest.id != null && guest.phoneNumbers != null && !guest.phoneNumbers.isEmpty()}">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="addPhoneBtn" data-bs-toggle="modal" data-bs-target="#addPhoneModal">
+                                        <i class="bi bi-plus-circle"></i> Add Another Phone
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modal for adding new phone number -->
+                        <div class="modal fade" id="addPhoneModal" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Add Phone Number</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form id="addPhoneForm" method="POST"
+                                              th:action="@{/admin/events/{eventId}/guests/{guestId}/add-phone(eventId=${event.id}, guestId=${guest.id})}">
+                                            <div class="mb-3">
+                                                <label for="modalPhoneNumber" class="form-label">Phone Number <span class="text-danger">*</span></label>
+                                                <input type="tel" class="form-control" id="modalPhoneNumber" name="phoneNumber"
+                                                       placeholder="+91 98765 43210"
+                                                       pattern="^\+?[0-9\s\-\(\)]+$"
+                                                       title="Include country code"
+                                                       required>
+                                                <div class="form-text">Include country code (e.g., +91 for India, +1 for US/Canada)</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="modalPhoneType" class="form-label">Phone Type</label>
+                                                <select class="form-select" id="modalPhoneType" name="phoneType">
+                                                    <option value="PERSONAL" selected>Personal</option>
+                                                    <option value="WORK">Work</option>
+                                                    <option value="OTHER">Other</option>
+                                                </select>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" form="addPhoneForm" class="btn btn-primary">Add Phone</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mb-3">

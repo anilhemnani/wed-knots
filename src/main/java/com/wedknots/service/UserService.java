@@ -43,11 +43,35 @@ public class UserService {
     }
 
     public String validateGuestLogin(String lastName, String mobile) {
-        Optional<Guest> guestOpt = guestRepository.findByFamilyNameIgnoreCaseAndContactPhone(lastName, mobile);
+        // Try to find guest by family name and ANY of their phone numbers
+        Optional<Guest> guestOpt = guestRepository.findByFamilyNameAndAnyPhoneNumber(lastName, mobile);
+
         if (guestOpt.isEmpty()) {
-            return "GUEST_NOT_FOUND";
+            // For backward compatibility, also check the old contact_phone field
+            // (in case there are guests without the new phoneNumbers relationship)
+            guestOpt = guestRepository.findByFamilyNameIgnoreCaseAndContactPhone(lastName, mobile);
+            if (guestOpt.isEmpty()) {
+                return "GUEST_NOT_FOUND";
+            }
         }
+
         return "SUCCESS";
+    }
+
+    /**
+     * Get guest for authentication using family name and any phone number
+     * Tries the new multi-phone system first, then falls back to old system
+     */
+    public Optional<Guest> getGuestForAuthentication(String lastName, String mobile) {
+        // Try new multi-phone system first
+        Optional<Guest> guestOpt = guestRepository.findByFamilyNameAndAnyPhoneNumber(lastName, mobile);
+
+        // Fallback to old single-phone system for backward compatibility
+        if (guestOpt.isEmpty()) {
+            guestOpt = guestRepository.findByFamilyNameIgnoreCaseAndContactPhone(lastName, mobile);
+        }
+
+        return guestOpt;
     }
 
     public String validateHostLogin(String email, String password) {

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -78,7 +79,7 @@ public class WhatsAppWebhookController {
     public ResponseEntity<?> handleWebhookEvent(
             @RequestBody String payload,
             @RequestHeader(name = "X-Hub-Signature-256", required = false) String signature) {
-
+        logger.info("Received webhook event {}", payload);
         try {
             // Validate webhook signature if app secret is configured
             // Skip validation if app-secret is empty (development mode)
@@ -93,7 +94,7 @@ public class WhatsAppWebhookController {
                 logger.warn("Webhook signature validation SKIPPED - app-secret not configured (development mode)");
             }
 
-            logger.debug("Processing webhook payload");
+            logger.info("Processing webhook payload {}", payload);
 
             // Parse the webhook payload
             WhatsAppWebhookPayload webhookPayload = parseWebhookPayload(payload);
@@ -132,6 +133,8 @@ public class WhatsAppWebhookController {
 
     /**
      * Process incoming messages from the webhook
+     * Supports multiple wedding events with the same WhatsApp phone number ID
+     * Messages are cloned and associated with all matching events
      */
     private void processMessageChanges(WhatsAppWebhookPayload.Value value) {
         if (value == null || value.getMessages() == null) {
@@ -147,20 +150,44 @@ public class WhatsAppWebhookController {
             return;
         }
 
-        // Find the event associated with this phone number ID
-        Optional<WeddingEvent> eventOpt = weddingEventRepository.findByWhatsappPhoneNumberId(phoneNumberId);
+        // Find ALL events associated with this phone number ID
+        List<WeddingEvent> events = weddingEventRepository.findAllByWhatsappPhoneNumberId(phoneNumberId);
 
-        if (eventOpt.isEmpty()) {
+        if (events.isEmpty()) {
             logger.warn("Received message for WhatsApp phone number ID: {} - No associated event found. " +
                        "Configure this phone number ID for a wedding event.", phoneNumberId);
             return;
         }
 
-        WeddingEvent event = eventOpt.get();
+        logger.info("Found {} event(s) associated with WhatsApp phone number ID: {}", events.size(), phoneNumberId);
+
+        // Process messages for each event
+        for (WeddingEvent event : events) {
+            try {
+                logger.info("Processing messages for event '{}' (ID: {}) with phone number ID: {}",
+                    event.getName(), event.getId(), phoneNumberId);
+
+                processMessagesForEvent(event, value);
+
+            } catch (Exception e) {
+                logger.error("Error processing messages for event ID {}: {}", event.getId(), e.getMessage(), e);
+            }
+        }
+    }
+
+    /**
+     * Process incoming messages for a specific event
+     * Clones the message payload and associates it with the event
+     */
+    private void processMessagesForEvent(WeddingEvent event, WhatsAppWebhookPayload.Value value) {
+        if (value == null || value.getMessages() == null) {
+            return;
+        }
 
         for (WhatsAppWebhookPayload.Message message : value.getMessages()) {
             try {
-                logger.info("Processing incoming message from: {} with ID: {}", message.getFrom(), message.getId());
+                logger.info("Processing incoming message from: {} with ID: {} for event: {}",
+                    message.getFrom(), message.getId(), event.getName());
 
                 String phoneNumber = message.getFrom();
                 String messageContent = null;
@@ -214,7 +241,8 @@ public class WhatsAppWebhookController {
                     phoneNumber, event.getName(), event.getId(), messageContent);
 
             } catch (Exception e) {
-                logger.error("Error processing message from {}: {}", message.getFrom(), e.getMessage(), e);
+                logger.error("Error processing message from {} for event ID {}: {}",
+                    message.getFrom(), event.getId(), e.getMessage(), e);
             }
         }
     }

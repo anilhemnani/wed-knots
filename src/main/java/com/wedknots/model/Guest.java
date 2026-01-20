@@ -29,8 +29,10 @@ public class Guest {
     @Column(name = "contact_email")
     private String contactEmail;
 
-    @Column(name = "contact_phone")
-    private String contactPhone;
+    // Phone numbers managed via GuestPhoneNumber entity (one-to-many relationship)
+    @OneToMany(mappedBy = "guest", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private java.util.List<GuestPhoneNumber> phoneNumbers = new java.util.ArrayList<>();
 
     @Column(name = "side")
     private String side;
@@ -90,5 +92,46 @@ public class Guest {
     public void setEventId(Long eventId) {
         // This is handled through setEvent() method
         // Kept for backward compatibility but does nothing
+    }
+
+    // Helper method to get primary phone number
+    public GuestPhoneNumber getPrimaryPhoneNumber() {
+        return phoneNumbers.stream()
+                .filter(phone -> Boolean.TRUE.equals(phone.getIsPrimary()))
+                .findFirst()
+                .orElse(phoneNumbers.isEmpty() ? null : phoneNumbers.get(0));
+    }
+
+    // Helper method to get primary phone number as string
+    public String getPrimaryPhoneNumberString() {
+        GuestPhoneNumber primary = getPrimaryPhoneNumber();
+        return primary != null ? primary.getPhoneNumber() : null;
+    }
+
+    // Helper method for backward compatibility - get contact phone (for views)
+    public String getContactPhone() {
+        return getPrimaryPhoneNumberString();
+    }
+
+    // Helper method for backward compatibility - set contact phone
+    public void setContactPhone(String phoneNumber) {
+        if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
+            // Only for migration/setting single phone - actual management via phoneNumbers collection
+            if (phoneNumbers.isEmpty()) {
+                GuestPhoneNumber primary = GuestPhoneNumber.builder()
+                        .guest(this)
+                        .phoneNumber(phoneNumber)
+                        .phoneType(GuestPhoneNumber.PhoneType.PERSONAL)
+                        .isPrimary(true)
+                        .build();
+                phoneNumbers.add(primary);
+            } else {
+                // Update existing primary
+                GuestPhoneNumber primary = getPrimaryPhoneNumber();
+                if (primary != null) {
+                    primary.setPhoneNumber(phoneNumber);
+                }
+            }
+        }
     }
 }

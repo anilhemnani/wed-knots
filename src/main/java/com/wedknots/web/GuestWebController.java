@@ -1,6 +1,7 @@
 package com.wedknots.web;
 
 import com.wedknots.model.Guest;
+import com.wedknots.model.GuestPhoneNumber;
 import com.wedknots.model.RSVP;
 import com.wedknots.model.WeddingEvent;
 import com.wedknots.repository.GuestRepository;
@@ -12,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 import java.util.Optional;
@@ -103,6 +105,91 @@ public class GuestWebController {
     public String deleteGuest(@PathVariable Long eventId, @PathVariable Long guestId) {
         guestService.deleteGuest(guestId);
         return "redirect:/events/" + eventId + "/guests";
+    }
+
+    /**
+     * Add a new phone number to a guest
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'HOST')")
+    @PostMapping("/{guestId}/add-phone")
+    public String addPhoneNumber(
+            @PathVariable Long eventId,
+            @PathVariable Long guestId,
+            @RequestParam String phoneNumber,
+            @RequestParam(required = false, defaultValue = "PERSONAL") String phoneType,
+            RedirectAttributes redirectAttributes) {
+        try {
+            GuestPhoneNumber.PhoneType type = GuestPhoneNumber.PhoneType.valueOf(phoneType);
+            guestService.addPhoneNumber(guestId, phoneNumber, type);
+            redirectAttributes.addFlashAttribute("successMessage", "Phone number added successfully");
+        } catch (RuntimeException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/events/" + eventId + "/guests/" + guestId + "/edit";
+    }
+
+    /**
+     * Set a phone number as primary
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'HOST')")
+    @PostMapping("/{guestId}/set-primary-phone/{phoneId}")
+    public String setPrimaryPhone(
+            @PathVariable Long eventId,
+            @PathVariable Long guestId,
+            @PathVariable Long phoneId,
+            RedirectAttributes redirectAttributes) {
+        try {
+            guestService.setPrimaryPhoneNumber(guestId, phoneId);
+            redirectAttributes.addFlashAttribute("successMessage", "Primary phone number updated");
+        } catch (RuntimeException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/events/" + eventId + "/guests/" + guestId + "/edit";
+    }
+
+    /**
+     * Remove a phone number from a guest
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'HOST')")
+    @PostMapping("/{guestId}/remove-phone/{phoneId}")
+    public String removePhoneNumber(
+            @PathVariable Long eventId,
+            @PathVariable Long guestId,
+            @PathVariable Long phoneId,
+            RedirectAttributes redirectAttributes) {
+        try {
+            guestService.removePhoneNumber(guestId, phoneId);
+            redirectAttributes.addFlashAttribute("successMessage", "Phone number removed successfully");
+        } catch (RuntimeException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/events/" + eventId + "/guests/" + guestId + "/edit";
+    }
+
+    /**
+     * WhatsApp RSVP Send Page
+     * Display UI for sending WhatsApp RSVP requests to guests
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'HOST')")
+    @GetMapping("/whatsapp-rsvp-send")
+    public String whatsappRsvpSendPage(@PathVariable Long eventId, Model model) {
+        Optional<WeddingEvent> eventOpt = weddingEventRepository.findById(eventId);
+        if (eventOpt.isEmpty()) {
+            return "redirect:/events";
+        }
+
+        WeddingEvent event = eventOpt.get();
+        List<Guest> guests = guestRepository.findAll().stream()
+                .filter(g -> g.getEventId() != null && g.getEventId().equals(eventId))
+                .toList();
+
+        model.addAttribute("event", event);
+        model.addAttribute("guests", guests);
+        model.addAttribute("whatsappConfigured",
+            Boolean.TRUE.equals(event.getWhatsappApiEnabled()) &&
+            event.getWhatsappPhoneNumberId() != null);
+
+        return "host/whatsapp_rsvp_send";
     }
 }
 

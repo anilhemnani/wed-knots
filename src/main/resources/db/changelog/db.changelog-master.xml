@@ -336,7 +336,7 @@
         <!-- Wedding event with explicit ID -->
         <insert tableName="wedding_event_tbl">
             <column name="id" valueNumeric="1"/>
-            <column name="name" value="Pratibha &amp; Karthik Wedding"/>
+            <column name="name" value="WedKnots - Pratibha &amp; Karthik"/>
             <column name="date" valueDate="2026-06-12"/>
             <column name="status" value="Published"/>
             <column name="bride_name" value="Pratibha"/>
@@ -351,7 +351,7 @@
             <column name="whatsapp_business_account_id" value="1569365317617857"/>
             <column name="whatsapp_access_token" value="EAAhsfeFINq4BQeoW8mr3Fl1dzVcpsWUZBVkcy4c8XDNqChgaKZAV4G9YsZC4lGmxkDYZBqFtf96KB1agIFOdCBXLD97UZAmQhx6UFceLK14ujeVljCG1hSaLOn42i6sXl9oewFfPMkjVywGpBELwYnvAqOiqrMRcB6wN6RlIDddoCTfhJD4yIGAVPDHJo1GhJMgZDZD"/>
             <column name="whatsapp_api_version" value="v24.0"/>
-            <column name="whatsapp_verify_token" value="wed-knots-verify-token"/>
+            <column name="whatsapp_verify_token" value="wedknots_whatsapp_verify_token"/>
         </insert>
 
         <!-- Host with explicit ID -->
@@ -496,4 +496,10 @@
 
     <!-- Add whatsapp_message_text column to invitation_log_tbl -->
     <include file="db/changelog/changelog-003-add-whatsapp-message-text.xml" relativeToChangelogFile="false"/>
+
+    <!-- Add support for multiple phone numbers per guest -->
+    <include file="db/changelog/changelog-004-add-multiple-phone-numbers.xml" relativeToChangelogFile="false"/>
+
+    <!-- Track which phone numbers received invitations -->
+    <include file="db/changelog/changelog-005-add-invitation-phone-records.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Wedding RSVP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            padding: 10px;
+        }
+
+        .container-mobile {
+            width: 100%;
+            max-width: 480px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .content {
+            padding: 30px 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        input[type="text"],
+        input[type="tel"],
+        input[type="email"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="tel"]:focus,
+        input[type="email"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background-color: #f8f9ff;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .radio-option {
+            flex: 1;
+        }
+
+        .radio-option input[type="radio"] {
+            display: none;
+        }
+
+        .radio-option label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 0;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .radio-option input[type="radio"]:checked + label {
+            background-color: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-submit:active {
+            transform: scale(0.98);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+
+        .spinner.show {
+            display: inline-block;
+        }
+
+        .error-message {
+            display: none;
+            background-color: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: shake 0.3s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ddd;
+        }
+
+        .step-dot.active {
+            background-color: #667eea;
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .attendee-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .attendee-input-group input {
+            flex: 1;
+        }
+
+        .btn-decrement,
+        .btn-increment {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-decrement:active,
+        .btn-increment:active {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-mobile">
+        <!-- Header -->
+        <div class="header">
+            <h1>📋 RSVP</h1>
+            <p th:text="|${eventName}|">Wedding Event</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="error-message" id="errorMessage"></div>
+
+            <!-- Step 1: Phone Verification -->
+            <div class="step active" id="step1">
+                <div class="step-indicator">
+                    <div class="step-dot active"></div>
+                    <div class="step-dot"></div>
+                </div>
+
+                <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 600;">Verify Your Phone Number</h3>
+
+                <form id="phoneForm" onsubmit="handlePhoneSubmit(event)">
+                    <div class="form-group">
+                        <label for="phoneNumber">Mobile Number</label>
+                        <input
+                            type="tel"
+                            id="phoneNumber"
+                            name="phoneNumber"
+                            placeholder="+447878597720"
+                            required
+                            pattern="^\+?[1-9]\d{1,14}$">
+                        <div class="form-hint">Include country code (e.g., +44 for UK)</div>
+                    </div>
+
+                    <button type="submit" class="btn-submit">
+                        <span id="phoneSpinner" class="spinner"></span>
+                        Continue
+                    </button>
+                </form>
+            </div>
+
+            <!-- Step 2: RSVP Form -->
+            <div class="step" id="step2">
+                <div class="step-indicator">
+                    <div class="step-dot active"></div>
+                    <div class="step-dot active"></div>
+                </div>
+
+                <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 600;" id="guestGreeting"></h3>
+
+                <form id="rsvpForm" method="POST" th:action="|/rsvp/event/${eventId}/submit|" onsubmit="handleRsvpSubmit(event)">
+                    <input type="hidden" name="guestId" id="guestId">
+
+                    <!-- RSVP Status -->
+                    <div class="form-group">
+                        <label style="margin-bottom: 15px;">Will you be attending?</label>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="attending" name="rsvpStatus" value="attending" required>
+                                <label for="attending">
+                                    <span>✓ Yes, I'll attend</span>
+                                </label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="notAttending" name="rsvpStatus" value="not_attending" required>
+                                <label for="notAttending">
+                                    <span>✗ Sorry, can't attend</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendee Count (shown only if attending) -->
+                    <div class="form-group" id="attendeeCountGroup" style="display: none;">
+                        <label for="attendeeCount">Number of Guests</label>
+                        <div class="attendee-input-group">
+                            <button type="button" class="btn-decrement" onclick="decrementAttendees()">−</button>
+                            <input type="number" id="attendeeCount" name="attendeeCount" value="1" min="1" max="10" readonly>
+                            <button type="button" class="btn-increment" onclick="incrementAttendees()">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Travel Mode (shown only if attending) -->
+                    <div class="form-group" id="travelModeGroup" style="display: none;">
+                        <label for="travelMode">How will you travel?</label>
+                        <select id="travelMode" name="travelMode">
+                            <option value="">-- Select option --</option>
+                            <option value="flight">✈️ Flight</option>
+                            <option value="train">🚂 Train</option>
+                            <option value="car">🚗 Car</option>
+                            <option value="bus">🚌 Bus</option>
+                            <option value="other">🚕 Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Travel Details -->
+                    <div class="form-group" id="travelDetailsGroup" style="display: none;">
+                        <label for="travelDetails">Travel Details</label>
+                        <textarea
+                            id="travelDetails"
+                            name="travelDetails"
+                            placeholder="E.g., Flight number, arrival time, train details..."></textarea>
+                        <div class="form-hint">Optional: Add flight number, arrival time, or other relevant details</div>
+                    </div>
+
+                    <!-- Dietary Restrictions -->
+                    <div class="form-group" id="dietaryGroup" style="display: none;">
+                        <label for="dietaryRestrictions">Dietary Restrictions</label>
+                        <textarea
+                            id="dietaryRestrictions"
+                            name="dietaryRestrictions"
+                            placeholder="Any allergies or dietary requirements..."></textarea>
+                        <div class="form-hint">Optional: Let us know about any dietary needs</div>
+                    </div>
+
+                    <!-- Special Requests -->
+                    <div class="form-group" id="specialGroup" style="display: none;">
+                        <label for="specialRequests">Special Requests</label>
+                        <textarea
+                            id="specialRequests"
+                            name="specialRequests"
+                            placeholder="Any special requests or messages..."></textarea>
+                        <div class="form-hint">Optional: Share any special requests</div>
+                    </div>
+
+                    <button type="submit" class="btn-submit">
+                        <span id="rsvpSpinner" class="spinner"></span>
+                        Submit RSVP
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const eventId = document.querySelector('[th\\:text]')?.getAttribute('th:text') || new URLSearchParams(window.location.search).get('eventId');
+
+        // Handle phone submission
+        async function handlePhoneSubmit(event) {
+            event.preventDefault();
+
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const errorDiv = document.getElementById('errorMessage');
+            const spinner = document.getElementById('phoneSpinner');
+
+            // Validate format
+            if (!/^\+?[1-9]\d{1,14}$/.test(phoneNumber)) {
+                showError('Invalid phone number format. Please include country code.');
+                return;
+            }
+
+            try {
+                spinner.classList.add('show');
+
+                const response = await fetch(`/rsvp/event/${getEventId()}/validate-phone`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ phoneNumber })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    showError(data.message);
+                    return;
+                }
+
+                // Store guest info
+                document.getElementById('guestId').value = data.guestId;
+                document.getElementById('guestGreeting').innerText = `Hello, ${data.guestName}! 👋`;
+
+                // Show step 2
+                document.getElementById('step1').classList.remove('active');
+                document.getElementById('step2').classList.add('active');
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('An error occurred. Please try again.');
+            } finally {
+                spinner.classList.remove('show');
+            }
+        }
+
+        // Handle RSVP form submission
+        async function handleRsvpSubmit(event) {
+            event.preventDefault();
+
+            const form = document.getElementById('rsvpForm');
+            const spinner = document.getElementById('rsvpSpinner');
+
+            try {
+                spinner.classList.add('show');
+
+                const formData = new FormData(form);
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    // Redirect to success page
+                    window.location.href = response.url;
+                } else {
+                    showError('Failed to submit RSVP. Please try again.');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('An error occurred. Please try again.');
+            } finally {
+                spinner.classList.remove('show');
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.innerText = message;
+            errorDiv.classList.add('show');
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        // Toggle form fields based on RSVP status
+        document.querySelectorAll('input[name="rsvpStatus"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const isAttending = this.value === 'attending';
+                document.getElementById('attendeeCountGroup').style.display = isAttending ? 'block' : 'none';
+                document.getElementById('travelModeGroup').style.display = isAttending ? 'block' : 'none';
+                document.getElementById('travelDetailsGroup').style.display = isAttending ? 'block' : 'none';
+                document.getElementById('dietaryGroup').style.display = isAttending ? 'block' : 'none';
+                document.getElementById('specialGroup').style.display = 'block';
+            });
+        });
+
+        // Attendee count increment/decrement
+        function incrementAttendees() {
+            const input = document.getElementById('attendeeCount');
+            if (parseInt(input.value) < 10) {
+                input.value = parseInt(input.value) + 1;
+            }
+        }
+
+        function decrementAttendees() {
+            const input = document.getElementById('attendeeCount');
+            if (parseInt(input.value) > 1) {
+                input.value = parseInt(input.value) - 1;
+            }
+        }
+
+        // Get event ID from URL
+        function getEventId() {
+            const pathArray = window.location.pathname.split('/');
+            return pathArray[pathArray.length - 1];
+        }
+    </script>
+</body>
+</html>
+

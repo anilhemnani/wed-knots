@@ -4,6 +4,7 @@ import com.wedknots.model.Guest;
 import com.wedknots.model.GuestMessage;
 import com.wedknots.model.Invitation;
 import com.wedknots.model.InvitationLog;
+import com.wedknots.model.InvitationPhoneRecord;
 import com.wedknots.repository.GuestRepository;
 import com.wedknots.repository.InvitationLogRepository;
 import com.wedknots.repository.InvitationRepository;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -36,6 +38,9 @@ public class InvitationLogService {
 
     @Autowired
     private MessageService messageService;
+
+    @Autowired
+    private InvitationPhoneRecordService invitationPhoneRecordService;
 
     @Transactional
     public List<InvitationLog> sendInvitationToGuests(Long invitationId, List<Long> guestIds, String sentBy) {
@@ -149,6 +154,24 @@ public class InvitationLogService {
 
             InvitationLog savedLog = invitationLogRepository.save(log);
             logs.add(savedLog);
+
+            // Record invitation sent to each of the guest's phone numbers
+            try {
+                if (guest.getPhoneNumbers() != null && !guest.getPhoneNumbers().isEmpty()) {
+                    logger.info("Recording invitation phone records for guest {} with {} phone numbers",
+                            guestId, guest.getPhoneNumbers().size());
+                    invitationPhoneRecordService.recordInvitationForAllGuestPhones(
+                            savedLog.getId(),
+                            "WHATSAPP",
+                            savedLog.getDeliveryStatus()
+                    );
+                } else {
+                    logger.warn("Guest {} has no phone numbers to record", guestId);
+                }
+            } catch (Exception phoneEx) {
+                logger.error("Failed to record invitation phone records for guest {}: {}", guestId, phoneEx.getMessage());
+                // Don't fail the overall operation if phone record creation fails
+            }
         }
 
         return logs;
@@ -303,5 +326,184 @@ public class InvitationLogService {
             }
         }
         return logs;
+    }
+
+    /**
+     * Send invitation to guest recording it against all their phone numbers
+     */
+    @Transactional
+    public InvitationLog sendInvitationWithAllPhones(Long invitationId, Long guestId, String sentBy, String contactMethod) {
+        Optional<Invitation> invitationOpt = invitationRepository.findById(invitationId);
+        Optional<Guest> guestOpt = guestRepository.findById(guestId);
+
+        if (invitationOpt.isEmpty()) {
+            throw new RuntimeException("Invitation not found with id: " + invitationId);
+        }
+        if (guestOpt.isEmpty()) {
+            throw new RuntimeException("Guest not found with id: " + guestId);
+        }
+
+        Invitation invitation = invitationOpt.get();
+        Guest guest = guestOpt.get();
+
+        // Check if invitation already sent to this guest
+        Optional<InvitationLog> existingLog = invitationLogRepository.findByInvitationIdAndGuestId(invitationId, guestId);
+        if (existingLog.isPresent()) {
+            logger.info("Invitation already sent to guest: {}", guestId);
+            throw new RuntimeException("Invitation already sent to this guest");
+        }
+
+        // Create invitation log
+        InvitationLog log = InvitationLog.builder()
+                .invitation(invitation)
+                .guest(guest)
+                .sentBy(sentBy)
+                .sentAt(LocalDateTime.now())
+                .whatsappNumber(guest.getPrimaryPhoneNumberString())
+                .deliveryStatus("SENT")
+                .build();
+
+        InvitationLog savedLog = invitationLogRepository.save(log);
+
+        // Record the invitation for ALL phone numbers of the guest
+        invitationPhoneRecordService.recordInvitationForAllGuestPhones(
+            savedLog.getId(),
+            contactMethod != null ? contactMethod : "WHATSAPP",
+            "SENT"
+        );
+
+        logger.info("Recorded invitation {} to guest {} with all phone numbers", invitationId, guestId);
+        return savedLog;
+    }
+
+    /**
+     * Send invitation to guest recording it against selected phone numbers
+     */
+    @Transactional
+    public InvitationLog sendInvitationWithSelectedPhones(Long invitationId, Long guestId,
+                                                          List<Long> selectedPhoneNumberIds, String sentBy,
+                                                          String contactMethod) {
+        Optional<Invitation> invitationOpt = invitationRepository.findById(invitationId);
+        Optional<Guest> guestOpt = guestRepository.findById(guestId);
+
+        if (invitationOpt.isEmpty()) {
+            throw new RuntimeException("Invitation not found with id: " + invitationId);
+        }
+        if (guestOpt.isEmpty()) {
+            throw new RuntimeException("Guest not found with id: " + guestId);
+        }
+        if (selectedPhoneNumberIds == null || selectedPhoneNumberIds.isEmpty()) {
+            throw new RuntimeException("At least one phone number must be selected");
+        }
+
+        Invitation invitation = invitationOpt.get();
+        Guest guest = guestOpt.get();
+
+        // Check if invitation already sent to this guest
+        Optional<InvitationLog> existingLog = invitationLogRepository.findByInvitationIdAndGuestId(invitationId, guestId);
+        if (existingLog.isPresent()) {
+            logger.info("Invitation already sent to guest: {}", guestId);
+            throw new RuntimeException("Invitation already sent to this guest");
+        }
+
+        // Create invitation log
+        InvitationLog log = InvitationLog.builder()
+                .invitation(invitation)
+                .guest(guest)
+                .sentBy(sentBy)
+                .sentAt(LocalDateTime.now())
+                .whatsappNumber(guest.getPrimaryPhoneNumberString())
+                .deliveryStatus("SENT")
+                .build();
+
+        InvitationLog savedLog = invitationLogRepository.save(log);
+
+        // Record the invitation for SELECTED phone numbers of the guest
+        invitationPhoneRecordService.recordInvitationForSelectedPhones(
+            savedLog.getId(),
+            selectedPhoneNumberIds,
+            contactMethod != null ? contactMethod : "WHATSAPP",
+            "SENT"
+        );
+
+        logger.info("Recorded invitation {} to guest {} with {} selected phone numbers",
+                   invitationId, guestId, selectedPhoneNumberIds.size());
+        return savedLog;
+    }
+
+    /**
+     * Mark invitation as sent externally with phone numbers recorded
+     */
+    @Transactional
+    public InvitationLog markInvitationSentExternallyWithPhones(Long invitationId, Long guestId,
+                                                               List<Long> phoneNumberIds,
+                                                               String externalMethod, String sentBy) {
+        Optional<Invitation> invitationOpt = invitationRepository.findById(invitationId);
+        if (invitationOpt.isEmpty()) {
+            throw new RuntimeException("Invitation not found with id: " + invitationId);
+        }
+
+        Optional<Guest> guestOpt = guestRepository.findById(guestId);
+        if (guestOpt.isEmpty()) {
+            throw new RuntimeException("Guest not found with id: " + guestId);
+        }
+
+        Guest guest = guestOpt.get();
+
+        // Check if invitation already sent to this guest
+        Optional<InvitationLog> existingLog = invitationLogRepository.findByInvitationIdAndGuestId(invitationId, guestId);
+        if (existingLog.isPresent()) {
+            logger.info("Invitation already sent to guest: {}", guestId);
+            throw new RuntimeException("Invitation already sent to this guest");
+        }
+
+        // Create invitation log for external invitation
+        InvitationLog log = InvitationLog.builder()
+                .invitation(invitationOpt.get())
+                .guest(guest)
+                .sentBy(sentBy)
+                .sentAt(LocalDateTime.now())
+                .deliveryStatus("SENT")
+                .deliveryTimestamp(LocalDateTime.now())
+                .invitationMethod("EXTERNAL")
+                .externalMethodDescription(externalMethod)
+                .build();
+
+        InvitationLog savedLog = invitationLogRepository.save(log);
+
+        // Record for specific phones if provided, otherwise all phones
+        if (phoneNumberIds != null && !phoneNumberIds.isEmpty()) {
+            invitationPhoneRecordService.recordInvitationForSelectedPhones(
+                savedLog.getId(),
+                phoneNumberIds,
+                externalMethod,
+                "SENT"
+            );
+        } else {
+            invitationPhoneRecordService.recordInvitationForAllGuestPhones(
+                savedLog.getId(),
+                externalMethod,
+                "SENT"
+            );
+        }
+
+        logger.info("Marked invitation {} as sent externally to guest {} via {} on phone numbers",
+                   invitationId, guestId, externalMethod);
+
+        return savedLog;
+    }
+
+    /**
+     * Get phone contact history for an invitation (how many phones contacted, delivery status, etc.)
+     */
+    public List<InvitationPhoneRecord> getPhoneContactHistory(Long invitationId) {
+        return invitationPhoneRecordService.getPhoneRecordsForInvitation(invitationId);
+    }
+
+    /**
+     * Get statistics about phone numbers contacted for an invitation
+     */
+    public Map<String, Object> getPhoneContactStatistics(Long invitationId) {
+        return invitationPhoneRecordService.getInvitationStatistics(invitationId);
     }
 }

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSVP Invitation Configuration - [[${event.name}]]</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .invitation-preview {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .component-section {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .parameter-badge {
+            display: inline-block;
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 3px;
+            padding: 5px 10px;
+            margin: 5px 5px 5px 0;
+            font-size: 0.9em;
+        }
+        .flow-button-demo {
+            display: inline-block;
+            background: #25D366;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 20px;
+            text-decoration: none;
+            margin: 10px 0;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .header-section {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .alert-info {
+            background-color: #e7f3ff;
+            border-left: 4px solid #0066cc;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="header-section">
+                <h1>
+                    <i class="bi bi-chat-dots-fill"></i> WhatsApp RSVP Invitation
+                </h1>
+                <p class="text-muted">
+                    Event: <strong th:text="${event.name}"></strong> |
+                    Date: <strong th:text="${event.date}"></strong>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="row mb-3" th:if="${success}">
+        <div class="col-md-12">
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="bi bi-check-circle"></i> <span th:text="${success}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3" th:if="${error}">
+        <div class="col-md-12">
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="bi bi-exclamation-circle"></i> <span th:text="${error}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Panel -->
+    <div class="row">
+        <div class="col-md-6">
+            <!-- Template Components Configuration -->
+            <div class="component-section">
+                <h4 class="mb-3">
+                    <i class="bi bi-gear"></i> Template Components
+                </h4>
+
+                <!-- Body Parameters -->
+                <div class="mb-4">
+                    <h5>Body Text Parameters</h5>
+                    <p class="text-muted small">These values are sent as parameters to the template</p>
+                    <div th:each="param, stat : ${bodyParameters}">
+                        <div class="mb-3" th:if="${stat.key} != 'class'">
+                            <label class="form-label fw-bold" th:text="${param.value.get('param' + (stat.count) + '_name')}"></label>
+                            <input type="text" class="form-control"
+                                   th:value="${param.value.get('param' + (stat.count) + '_example')}"
+                                   readonly>
+                            <small class="text-muted" th:text="'Example: ' + ${param.value.get('param' + (stat.count) + '_example')}"></small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flow Button Configuration -->
+                <div th:if="${flowButtonConfig}">
+                    <h5>Flow Button Configuration</h5>
+                    <div class="alert alert-info">
+                        <strong>Button Type:</strong> <span th:text="${flowButtonConfig.get('button_type')}"></span><br>
+                        <strong>Button Text:</strong> <span th:text="${flowButtonConfig.get('button_text')}"></span><br>
+                        <strong>Initial Screen:</strong> <span th:text="${flowButtonConfig.get('initial_screen')}"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Panel -->
+        <div class="col-md-6">
+            <!-- Invitation Preview -->
+            <div class="invitation-preview">
+                <h5 class="mb-3">
+                    <i class="bi bi-eye"></i> Invitation Preview
+                </h5>
+
+                <!-- WhatsApp Message Preview -->
+                <div style="background: white; border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                    <div style="color: #128c7e; font-weight: bold; margin-bottom: 10px; font-size: 14px;">
+                        <i class="bi bi-telephone-fill"></i> WhatsApp Message
+                    </div>
+
+                    <!-- Message Bubble -->
+                    <div style="background: #e7f5fe; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+                        <p style="margin: 0 0 8px 0;">
+                            Hi <strong>{{guest_name}}</strong>! 👋
+                        </p>
+                        <p style="margin: 0 0 8px 0;">
+                            You're invited to the wedding of
+                            <strong>{{bride_name}} & {{groom_name}}</strong>
+                        </p>
+                        <p style="margin: 0;">
+                            📅 {{wedding_date}}<br>
+                            📍 {{wedding_location}}
+                        </p>
+                    </div>
+
+                    <!-- Flow Button -->
+                    <button class="flow-button-demo" style="width: 100%; text-align: center;">
+                        <i class="bi bi-arrow-right"></i> Start RSVP
+                    </button>
+                    <small class="text-muted" style="display: block; margin-top: 8px;">
+                        Tapping this button will open the RSVP flow
+                    </small>
+                </div>
+
+                <!-- Template Metadata -->
+                <div class="alert alert-info small">
+                    <strong>Template:</strong> <span th:text="${templateConfig.get('template_name')}"></span><br>
+                    <strong>Language:</strong> <span th:text="${templateConfig.get('template_language')}"></span><br>
+                    <strong>Data API:</strong> <span th:text="${templateConfig.get('data_api_version')}"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Invitation Section -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="component-section">
+                <h4 class="mb-3">
+                    <i class="bi bi-send"></i> Send Invitations
+                </h4>
+
+                <form action="send-batch" method="POST" class="mb-3">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <input type="text" name="guestIds" class="form-control"
+                                   placeholder="Enter guest IDs separated by commas (e.g., 1,2,3)"
+                                   required>
+                            <small class="text-muted">Guest IDs from the guest list</small>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-send-fill"></i> Send Invitations
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Alternative: Guest Selection -->
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Tip:</strong> You can also send invitations individually from the guest list page.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flow Routing Information -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="component-section">
+                <h4 class="mb-3">
+                    <i class="bi bi-diagram-3"></i> RSVP Flow Journey
+                </h4>
+                <div class="row text-center">
+                    <div class="col-md-2">
+                        <div class="badge bg-primary mb-2" style="display: block; width: 100%; padding: 15px;">
+                            WELCOME_SCREEN
+                        </div>
+                        <small>Invitation</small>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-arrow-right"></i>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="badge bg-info mb-2" style="display: block; width: 100%; padding: 15px;">
+                            RSVP_SCREEN
+                        </div>
+                        <small>Response</small>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-arrow-right"></i>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="badge bg-warning mb-2" style="display: block; width: 100%; padding: 15px;">
+                            ATTENDING_SCREEN
+                        </div>
+                        <small>Details</small>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-arrow-right"></i>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="badge bg-success mb-2" style="display: block; width: 100%; padding: 15px;">
+                            SUCCESS_SCREEN
+                        </div>
+                        <small>Confirmation</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="row mt-4 mb-4">
+        <div class="col-md-12">
+            <a th:href="@{/event/{id}(id=${event.id})}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Event
+            </a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

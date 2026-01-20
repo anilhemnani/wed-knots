@@ -93,6 +93,86 @@
               </div>
             </div>
 
+            <!-- WhatsApp Configuration Section -->
+            <div class="card bg-light mt-4 mb-4">
+              <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                  <i class="bi bi-whatsapp"></i> WhatsApp Cloud API Configuration
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                  <strong>📌 Note:</strong> Configure your WhatsApp Cloud API credentials to enable WhatsApp message sending and receiving for this event.
+                  Get these values from your <a href="https://business.facebook.com/" target="_blank">Meta Business Manager</a>.
+                </div>
+
+                <div class="mb-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="whatsapp_api_enabled" th:field="*{whatsappApiEnabled}">
+                    <label class="form-check-label" for="whatsapp_api_enabled">
+                      Enable WhatsApp Cloud API for this event
+                    </label>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="whatsapp_phone_number_id" class="form-label">
+                      WhatsApp Phone Number ID
+                      <span class="text-danger">*</span> (if enabled)
+                    </label>
+                    <input type="text" class="form-control" id="whatsapp_phone_number_id"
+                           th:field="*{whatsappPhoneNumberId}"
+                           placeholder="e.g., 120363456789012"
+                           pattern="^\d{15,}$"
+                           title="Phone Number ID should be a numeric ID from Meta">
+                    <div class="form-text">
+                      Find this in Meta Business Manager → WhatsApp → Senders → Your phone number
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="whatsapp_business_account_id" class="form-label">
+                      WhatsApp Business Account ID
+                      <span class="text-danger">*</span> (if enabled)
+                    </label>
+                    <input type="text" class="form-control" id="whatsapp_business_account_id"
+                           th:field="*{whatsappBusinessAccountId}"
+                           placeholder="e.g., 102093456789012"
+                           pattern="^\d{15,}$"
+                           title="Business Account ID should be a numeric ID from Meta">
+                    <div class="form-text">
+                      Find this in Meta Business Manager → Settings → Business Account settings
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="whatsapp_access_token" class="form-label">
+                    WhatsApp Access Token
+                    <span class="text-danger">*</span> (if enabled)
+                  </label>
+                  <input type="password" class="form-control" id="whatsapp_access_token"
+                         th:field="*{whatsappAccessToken}"
+                         placeholder="Your access token (hidden for security)">
+                  <div class="form-text">
+                    Generate a System User Access Token with manage_whatsapp_business_messaging permission
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="whatsapp_api_version" class="form-label">WhatsApp API Version</label>
+                    <input type="text" class="form-control" id="whatsapp_api_version"
+                           th:field="*{whatsappApiVersion}"
+                           placeholder="e.g., v24.0" value="v24.0">
+                    <div class="form-text">
+                      Default: v24.0. Update if needed based on Meta's API roadmap.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="d-flex justify-content-between mt-4">
               <a href="/admin/dashboard" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Cancel

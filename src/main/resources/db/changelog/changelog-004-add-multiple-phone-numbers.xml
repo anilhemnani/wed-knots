@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- Migrate existing contact_phone to guest_phone_number table -->
+    <changeSet id="add-guest-phone-number-table-and-migrate" author="auto">
+
+        <!-- Create the guest_phone_number_tbl table -->
+        <createTable tableName="guest_phone_number_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="guest_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="phone_number" type="VARCHAR(50)"/>
+            <column name="phone_type" type="VARCHAR(50)" defaultValue="PERSONAL"/>
+            <column name="is_primary" type="BOOLEAN" defaultValueBoolean="true"/>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <!-- Add foreign key constraint -->
+        <addForeignKeyConstraint baseTableName="guest_phone_number_tbl" baseColumnNames="guest_id"
+                                  referencedTableName="guest_tbl" referencedColumnNames="id"
+                                  constraintName="fk_guest_phone_number_guest" onDelete="CASCADE"/>
+
+        <!-- Migrate existing contact_phone data to guest_phone_number table -->
+        <sql>
+            INSERT INTO guest_phone_number_tbl (guest_id, phone_number, phone_type, is_primary, created_at, updated_at)
+            SELECT id, contact_phone, 'PERSONAL', true,
+                   CASE WHEN created_at IS NOT NULL THEN created_at ELSE CURRENT_TIMESTAMP END,
+                   CASE WHEN updated_at IS NOT NULL THEN updated_at ELSE CURRENT_TIMESTAMP END
+            FROM guest_tbl
+            WHERE contact_phone IS NOT NULL AND contact_phone != '';
+        </sql>
+
+        <!-- Drop the old contact_phone column from guest_tbl -->
+        <dropColumn tableName="guest_tbl" columnName="contact_phone"/>
+
+    </changeSet>
+
+</databaseChangeLog>
+

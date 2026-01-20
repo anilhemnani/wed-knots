@@ -56,6 +56,11 @@ public class InvitationLog {
     @Column(name = "whatsapp_message_text", columnDefinition = "TEXT")
     private String whatsappMessageText; // Stored WhatsApp message body actually sent
 
+    // Track which phone numbers of the guest received this invitation
+    @OneToMany(mappedBy = "invitationLog", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private java.util.List<InvitationPhoneRecord> phoneRecords = new java.util.ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         sentAt = LocalDateTime.now();

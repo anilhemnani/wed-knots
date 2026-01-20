@@ -63,7 +63,12 @@
                                     <dd class="col-sm-8" th:text="${guest.familyName}">Family Name</dd>
 
                                     <dt class="col-sm-4">Phone:</dt>
-                                    <dd class="col-sm-8" th:text="${guest.contactPhone}">Phone Number</dd>
+                                    <dd class="col-sm-8">
+                                        <span th:if="${guest.primaryPhoneNumberString != null}" th:text="${guest.primaryPhoneNumberString}">Phone Number</span>
+                                        <span th:if="${guest.phoneNumbers.size() > 1}" class="ms-2">
+                                            <small class="badge bg-info" th:text="'+ ' + (${guest.phoneNumbers.size()} - 1) + ' more'"></small>
+                                        </span>
+                                    </dd>
                                 </dl>
                             </div>
                         </div>

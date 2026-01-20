@@ -1,0 +1,182 @@
+# QUICK START - WhatsApp Flow Public Key Setup
+
+## The Problem
+```
+❌ "You need to upload and sign a public key to a phone number
+    before you can send or publish a Flow."
+```
+
+This is a Meta requirement. You need to:
+1. Generate an RSA key pair
+2. Upload the public key to Meta Business Manager
+3. Sign your phone number
+4. Then publish your flow
+
+---
+
+## Quick Solution (5 Minutes)
+
+### 1. Generate Keys (Windows PowerShell)
+
+```powershell
+cd C:\dev\projects\wed-knots
+.\scripts\generate-whatsapp-keys.ps1
+```
+
+**What to expect:**
+- Script generates 2 files in `keys/` folder
+- Displays the public key on screen
+- **Copy the public key (entire block including header/footer)**
+
+```
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4f5w...
+[lots of characters]
+-----END PUBLIC KEY-----
+```
+
+---
+
+### 2. Upload Public Key to Meta
+
+**Login to:** https://business.facebook.com
+
+**Navigate to:**
+1. Left menu → WhatsApp
+2. Click "Settings" or "Accounts & Settings"
+3. Select your phone number
+4. Find "Public Key" or "Security Settings"
+5. Click "Add Public Key" or "Upload"
+6. Paste the public key from Step 1
+7. Click "Save" or "Upload"
+
+**Look for confirmation:** "Public Key Uploaded Successfully"
+
+---
+
+### 3. Sign Your Phone Number
+
+**In Meta Business Manager, same phone number page:**
+1. Look for "Sign Phone Number" or similar button
+2. Click it
+3. You should see status change to "Signed: Yes"
+
+**⏱ Important:** Wait 5-15 minutes for Meta to process
+
+---
+
+### 4. Verify Status
+
+**Still in Meta, your phone number should show:**
+- ✓ Public Key Status: **Uploaded**
+- ✓ Phone Number Signed: **Yes**
+- ✓ Status: **Active/Ready**
+
+---
+
+### 5. Publish Your Flow
+
+**In Meta Business Manager:**
+1. Go to WhatsApp → Flows
+2. Find your RSVP flow
+3. Click "Publish"
+4. ✓ Should work now!
+5. Copy the **Flow ID** that appears (e.g., 1234567890123456)
+
+---
+
+### 6. Update Your Application
+
+**Edit:** `src/main/resources/application.yml`
+
+```yaml
+whatsapp:
+  flow:
+    rsvp-flow-id: "YOUR_FLOW_ID_HERE"  # ← Paste Flow ID from Step 5
+```
+
+**Restart application** and you're done!
+
+---
+
+## If It Still Doesn't Work
+
+### Try This
+```powershell
+# In Meta Business Manager:
+1. Refresh page (Ctrl+F5)
+2. Logout completely
+3. Close browser
+4. Wait 10 minutes
+5. Open browser, login to Meta again
+6. Check phone number status again
+7. Try publishing again
+```
+
+### Check These
+- ✓ Did you wait 15 minutes after signing?
+- ✓ Is the status showing "Signed: Yes" in Meta?
+- ✓ Are you uploading to a WhatsApp BUSINESS number (not personal)?
+- ✓ Did you paste the ENTIRE public key with header and footer?
+
+---
+
+## File Reference
+
+### Generated Files
+- **Private Key:** `C:\dev\projects\wed-knots\keys\private_key.pem`
+  - Keep secret! Don't share or commit to git
+
+- **Public Key:** `C:\dev\projects\wed-knots\keys\public_key.pem`
+  - Upload this to Meta
+  - Safe to share
+
+### Config File
+- **Application Config:** `src/main/resources/application.yml`
+  - Update with your Flow ID
+
+### Documentation
+- **Detailed Guide:** `WHATSAPP_FLOW_SIGNING_GUIDE.md`
+- **Step-by-Step:** `WHATSAPP_FLOW_SETUP_STEPS.md`
+- **Explanation:** `WHATSAPP_FLOW_ERROR_EXPLAINED.md`
+
+---
+
+## Don't Forget!
+
+❌ **Don't:**
+- Commit the `keys/` folder to git
+- Share your private key
+- Use a personal WhatsApp number (must be Business)
+
+✓ **Do:**
+- Add `keys/` to `.gitignore`
+- Update application.yml after flow is published
+- Restart the application
+
+---
+
+## Need Help?
+
+### Check Documentation
+1. See `WHATSAPP_FLOW_SIGNING_GUIDE.md` for detailed technical info
+2. See `WHATSAPP_FLOW_SETUP_STEPS.md` for complete step-by-step
+3. See `WHATSAPP_FLOW_ERROR_EXPLAINED.md` for why this happens
+
+### Contact Meta Support
+- Go to: business.facebook.com → Help → Support
+- Describe: "Cannot publish WhatsApp Flow after key signing"
+
+---
+
+## Timeline
+- Generate keys: **1 minute**
+- Upload & sign in Meta: **5-10 minutes**
+- Meta processing: **5-15 minutes**
+- Update application: **1 minute**
+- **Total: 15-30 minutes**
+
+---
+
+**That's it! After these steps, your RSVP flows will work perfectly.**
+

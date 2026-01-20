@@ -38,7 +38,7 @@ spring:
   thymeleaf:
     cache: false
 server:
-  port: 9090
+  port: 8080
   servlet:
     session:
       timeout: 30m
@@ -51,6 +51,8 @@ logging:
   level:
     org.springframework: INFO
     liquibase: INFO
+    com.wedknots.web.WhatsAppFlowController: DEBUG
+
 whatsapp:
   webhook:
     # For testing with Facebook's webhook test tool:
@@ -58,6 +60,12 @@ whatsapp:
     # 2. Set it below OR pass as -Dwhatsapp.webhook.app-secret=<your-app-secret>
     # 3. Leave empty to skip signature validation (dev mode only)
     verify-token: "wedknots_whatsapp_verify_token"
-    app-secret: ""  # Set your Meta App Secret here for testing
+    app-secret: 2572cfa8d9ad2ff2d315a034202950d6  # Set your Meta App Secret here for testing
     endpoint-path: "/api/whatsapp/webhook"
+    private-key-path: "c:\\hosting\\wed-knots\\private_key.pem"
+  flow:
+    # WhatsApp Flow ID for RSVP flow (v7.3)
+    # Get this from Meta Business Manager > Flows > Create Flow
+    rsvp-flow-id: "869533252625207"
+    app-secret: 2572cfa8d9ad2ff2d315a034202950d6
 

@@ -1,0 +1,14 @@
+curl -X POST \
+  'https://graph.facebook.com/v24.0/889286674274022/whatsapp_business_encryption' \
+  -H 'Authorization: Bearer TOKEN' \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'business_public_key=-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjhHI2ydI7K2plWmS44+V
+x2Hm7ckCixY5WF9zqqIl59YYQ0jfuAl0/iApmaP0J9Qbu1T6X6pBRp0xb/r5O1kC
+kysgpo5F8pK3JVafIuuYs0vJl0zH1w793sFuUy6TFg1vVq5fFq2seLJkdG1lpH+x
+t2veWnGdYa7X5Txlvx825c1D1+vfCnI9ZxhQLLIOw+IcYNvEh5Or3AxEEOVzKshU
+hOZfcNcfQlfuGljxogE+Oh3EFYdUP2w8VWUVGVjUQmn0vY1APcb/5ur6g9yBrEbh
+IXzpZXMyfJCbjghaOhP2r4XcqQZ3roux40ssQ4NyEN84jZAXdwwZ0XL7pAvYZejo
+fQIDAQAB
+-----END PUBLIC KEY-----
+'

@@ -111,7 +111,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/login/**", "/register", "/css/**", "/js/**", "/set-password", "/set-password-host", "/public/**", "/api/whatsapp/webhook/**", "/privacy-policy", "/contact/**", "/icon-test", "/icon", "/icon-debug", "/forbidden", "/error").permitAll()
+                .requestMatchers("/", "/login/**", "/register", "/css/**", "/js/**", "/set-password", "/set-password-host", "/public/**", "/api/whatsapp/webhook/**", "/api/whatsapp/flow/webhook/**", "/privacy-policy", "/contact/**", "/icon-test", "/icon", "/icon-debug", "/forbidden", "/error").permitAll()
                 .requestMatchers("/h2-console/**").hasRole("ADMIN")  // Protect H2 console - admin only
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/host/**").hasRole("HOST")
