@@ -79,3 +79,69 @@ jasypt:
     password: ${JASYPT_ENCRYPTOR_PASSWORD:}
     algorithm: PBEWithMD5AndDES
     iv-generator-classname: org.jasypt.iv.NoIvGenerator
+
+# Message Delivery Configuration
+delivery:
+  # Email Delivery
+  email:
+    enabled: ${EMAIL_ENABLED:false}
+    smtp:
+      host: ${EMAIL_SMTP_HOST:smtp.gmail.com}
+      port: ${EMAIL_SMTP_PORT:587}
+      username: ${EMAIL_SMTP_USERNAME:}
+      password: ${EMAIL_SMTP_PASSWORD:}
+      auth: ${EMAIL_SMTP_AUTH:true}
+      starttls-enable: ${EMAIL_SMTP_STARTTLS:true}
+    sender-email: ${EMAIL_SENDER:noreply@wedknots.uk}
+    sender-name: ${EMAIL_SENDER_NAME:WedKnots}
+
+  # SMS Delivery
+  sms:
+    enabled: ${SMS_ENABLED:false}
+    provider: ${SMS_PROVIDER:d7}  # d7, twilio, etc.
+    api-key: ${SMS_API_KEY:}
+    api-secret: ${SMS_API_SECRET:}
+    sender-id: ${SMS_SENDER_ID:WedKnots}
+    api-url: ${SMS_API_URL:https://api.d7networks.com/messages/v1/send}
+
+  # WhatsApp Personal (via Selenium/Browser)
+  whatsapp-personal:
+    enabled: ${WHATSAPP_PERSONAL_ENABLED:false}
+    selenium:
+      driver-type: ${SELENIUM_DRIVER_TYPE:edge}  # edge or chrome
+      driver-path: ${SELENIUM_DRIVER_PATH:}
+      profile-dir: ${SELENIUM_PROFILE_DIR:c:/hosting/wed-knots/edge-profile}
+      binary: ${SELENIUM_BINARY:C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe}
+      headless: ${SELENIUM_HEADLESS:false}
+
+  # WhatsApp ADB (via Android Device)
+  whatsapp-adb:
+    enabled: ${WHATSAPP_ADB_ENABLED:false}
+    device-id: ${WHATSAPP_ADB_DEVICE_ID:}
+    adb-path: ${WHATSAPP_ADB_PATH:C:/tools/adb/platform-tools/adb.exe}
+    timeout-seconds: ${WHATSAPP_ADB_TIMEOUT:30}
+    human-delay-min-ms: ${WHATSAPP_ADB_DELAY_MIN:500}
+    human-delay-max-ms: ${WHATSAPP_ADB_DELAY_MAX:2000}
+
+  # WhatsApp Business API (Cloud API)
+  whatsapp-business:
+    enabled: ${WHATSAPP_BUSINESS_ENABLED:false}
+    api-key: ${WHATSAPP_API_KEY:}
+    phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
+    business-account-id: ${WHATSAPP_BUSINESS_ACCOUNT_ID:}
+    api-url: ${WHATSAPP_API_URL:https://graph.facebook.com/v24.0}
+
+  # External/Manual Delivery
+  external:
+    enabled: ${EXTERNAL_DELIVERY_ENABLED:true}
+    service-url: ${EXTERNAL_DELIVERY_URL:}
+    api-key: ${EXTERNAL_DELIVERY_API_KEY:}
+
+  # Async Processing
+  async:
+    enabled: ${ASYNC_DELIVERY_ENABLED:true}
+    batch-size: ${ASYNC_BATCH_SIZE:10}
+    processing-interval-seconds: ${ASYNC_PROCESSING_INTERVAL:10}
+    retry-interval-seconds: ${ASYNC_RETRY_INTERVAL:30}
+    stuck-message-timeout-minutes: ${ASYNC_STUCK_TIMEOUT:30}
+    max-retries: ${ASYNC_MAX_RETRIES:3}
