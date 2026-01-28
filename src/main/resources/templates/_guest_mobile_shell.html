@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Dashboard</title>
+    <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
+    <style>
+      * { -webkit-tap-highlight-color: transparent; }
+      body { -webkit-font-smoothing: antialiased; background: #f7f7fa; }
+      .container-mobile { padding-left: 0.9rem; padding-right: 0.9rem; }
+      .card { border-radius: 0.6rem; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.04); }
+      .card-header { border-bottom: none; }
+      .btn { min-height: 48px; font-size: 1rem; border-radius: 0.5rem; }
+      .btn-sm { min-height: 40px; font-size: 0.95rem; }
+      .form-control, .form-select { min-height: 46px; border-radius: 0.45rem; }
+      .badge { padding: 0.45rem 0.65rem; font-weight: 600; border-radius: 999px; }
+      .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.75rem; }
+      @media (max-width: 576px) { h1,h2,h3,h4,h5 { margin-bottom: 0.5rem; } }
+    </style>
+</head>
+<body class="bg-light">
+</body>
+</html>
+

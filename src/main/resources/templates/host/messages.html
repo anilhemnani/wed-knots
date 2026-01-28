@@ -60,7 +60,7 @@
             <div class="card-header d-flex justify-content-between align-items-center"
                  th:classappend="${message.isRead ? '' : 'bg-light-blue'}">
                 <div>
-                    <strong th:text="${message.guest != null ? message.guest.contactName : message.phoneNumber}">Guest Name</strong>
+                    <strong th:text="${message.guest != null ? (message.guest.contactFirstName + ' ' + message.guest.contactLastName) : message.phoneNumber}">Guest Name</strong>
                     <span class="badge bg-secondary ms-2" th:text="${message.messageType}">TEXT</span>
                     <span class="badge bg-success ms-1" th:if="${!message.isRead}">NEW</span>
                 </div>

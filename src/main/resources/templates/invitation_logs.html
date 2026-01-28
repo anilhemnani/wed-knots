@@ -131,12 +131,15 @@
                         <td>
                             <strong th:text="${log.guest.familyName}"></strong>
                             <br>
-                            <small class="text-muted" th:text="${log.guest.contactName}"></small>
+                            <small class="text-muted" th:text="${log.guest.contactFirstName} + ' ' + ${log.guest.contactLastName}"></small>
                         </td>
                         <td>
                             <small th:text="${log.guest.contactEmail}"></small>
                         </td>
                         <td>
+                            <span th:if="${log.invitationMethod == 'EMAIL'}" class="badge bg-primary">
+                                <i class="bi bi-envelope"></i> Email
+                            </span>
                             <span th:if="${log.invitationMethod == 'WHATSAPP'}" class="badge bg-info">
                                 <i class="bi bi-whatsapp"></i> WhatsApp
                             </span>

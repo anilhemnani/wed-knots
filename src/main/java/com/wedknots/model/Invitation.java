@@ -42,10 +42,38 @@ public class Invitation {
     private String messageType = "TEMPLATE"; // PLAIN_TEXT or TEMPLATE
 
     @Column(name = "template_name")
-    private String templateName; // WhatsApp template name (required when messageType is TEMPLATE)
+    private String templateName; // Template name
 
     @Column(name = "template_language")
-    private String templateLanguage; // Template language code (auto-detected from template if not specified)
+    private String templateLanguage; // Template language code
+
+    // Delivery Method: email, sms, whatsapp-personal, whatsapp-adb, whatsapp-business, external
+    @Column(name = "delivery_method")
+    private String deliveryMethod;
+
+    // Email-specific fields
+    @Column(name = "email_subject")
+    private String emailSubject;
+
+    @Column(name = "email_body", columnDefinition = "TEXT")
+    private String emailBody;
+
+    @Column(name = "email_attachments", columnDefinition = "TEXT")
+    private String emailAttachments; // JSON array of attachment URLs
+
+    // SMS-specific fields
+    @Column(name = "sms_text", columnDefinition = "TEXT")
+    private String smsText;
+
+    // WhatsApp-specific fields
+    @Column(name = "whatsapp_text", columnDefinition = "TEXT")
+    private String whatsappText;
+
+    @Column(name = "whatsapp_media_url")
+    private String whatsappMediaUrl;
+
+    @Column(name = "whatsapp_media_type")
+    private String whatsappMediaType; // image, video, document
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -58,7 +86,7 @@ public class Invitation {
     private String status = "DRAFT"; // DRAFT, ACTIVE, ARCHIVED
 
     @Transient
-    private String whatsAppMessage; // Optional runtime WhatsApp message text
+    private String whatsAppMessage; // Optional runtime message text
 
     // Track which guests received this invitation
     @OneToMany(mappedBy = "invitation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)

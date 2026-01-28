@@ -300,7 +300,6 @@
                             </div>
                             <div class="col-md-3 text-end">
                                 ${statusBadge}
-                                ${message.whatsappMessageId ? `<br><small class="text-muted">WhatsApp ID: ${message.whatsappMessageId.substring(0, 10)}...</small>` : ''}
                             </div>
                         </div>
                     </div>
@@ -374,14 +373,6 @@
                             ${new Date(message.updatedAt).toLocaleString()}
                         </div>
                     </div>
-                    ${message.whatsappMessageId ? `
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <strong>WhatsApp Message ID:</strong><br>
-                            <code>${message.whatsappMessageId}</code>
-                        </div>
-                    </div>
-                    ` : ''}
                     ${message.errorMessage ? `
                     <div class="row mb-3">
                         <div class="col-md-12">

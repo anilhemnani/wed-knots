@@ -1,10 +1,9 @@
 package com.wedknots.service;
 
-import com.wedknots.model.Guest;
-import com.wedknots.model.GuestMessage;
-import com.wedknots.model.Invitation;
-import com.wedknots.model.InvitationLog;
-import com.wedknots.model.InvitationPhoneRecord;
+import com.wedknots.delivery.DeliveryMode;
+import com.wedknots.delivery.DeliveryRequest;
+import com.wedknots.delivery.MessageDeliveryService;
+import com.wedknots.model.*;
 import com.wedknots.repository.GuestRepository;
 import com.wedknots.repository.InvitationLogRepository;
 import com.wedknots.repository.InvitationRepository;
@@ -17,9 +16,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Service for managing invitation logs
+ * Tracks which guests have been sent invitations and via what method
+ */
 @Service
 public class InvitationLogService {
     private static final Logger logger = LoggerFactory.getLogger(InvitationLogService.class);
@@ -34,16 +36,25 @@ public class InvitationLogService {
     private GuestRepository guestRepository;
 
     @Autowired
-    private WhatsAppService whatsAppService;
-
-    @Autowired
     private MessageService messageService;
 
     @Autowired
     private InvitationPhoneRecordService invitationPhoneRecordService;
 
+    @Autowired
+    private MessageDeliveryService messageDeliveryService;
+
+    /**
+     * Record invitations as sent to multiple guests
+     * Supports both sending notifications and just recording the send
+     * @param invitationId ID of the invitation
+     * @param guestIds List of guest IDs to send to
+     * @param sentBy Username of person sending
+     * @param method Invitation method (EMAIL, SMS, IN_PERSON, etc.)
+     * @return List of created invitation logs
+     */
     @Transactional
-    public List<InvitationLog> sendInvitationToGuests(Long invitationId, List<Long> guestIds, String sentBy) {
+    public List<InvitationLog> sendInvitationToGuests(Long invitationId, List<Long> guestIds, String sentBy, String method) {
         Optional<Invitation> invitationOpt = invitationRepository.findById(invitationId);
         if (invitationOpt.isEmpty()) {
             throw new RuntimeException("Invitation not found with id: " + invitationId);
@@ -51,13 +62,6 @@ public class InvitationLogService {
 
         Invitation invitation = invitationOpt.get();
         List<InvitationLog> logs = new ArrayList<>();
-
-        // Validate template requirements based on invitation's message type
-        if ("TEMPLATE".equals(invitation.getMessageType())) {
-            if (invitation.getTemplateName() == null || invitation.getTemplateName().isBlank()) {
-                throw new RuntimeException("WhatsApp template name is required when message type is TEMPLATE.");
-            }
-        }
 
         for (Long guestId : guestIds) {
             Optional<Guest> guestOpt = guestRepository.findById(guestId);
@@ -75,102 +79,56 @@ public class InvitationLogService {
                 continue;
             }
 
-            // Create invitation log
+            // Create invitation log - mark as sent
             InvitationLog log = InvitationLog.builder()
                     .invitation(invitation)
                     .guest(guest)
                     .sentBy(sentBy)
                     .sentAt(LocalDateTime.now())
-                    .whatsappNumber(guest.getContactPhone())
-                    .deliveryStatus("PENDING")
+                    .deliveryStatus("SENT")
+                    .deliveryTimestamp(LocalDateTime.now())
+                    .invitationMethod(method != null ? method : "EMAIL")
                     .build();
-
-            // Send WhatsApp message using invitation's message type and template settings
-            String whatsappMessageId = null;
-            String composedMessage = null;
-            try {
-                // Build the message body we send (plain or template preview)
-                if (invitation.getMessageType() != null && invitation.getMessageType().equals("TEMPLATE")) {
-                    // For template messages, use the stored message field which should contain the template preview
-                    // If message is empty, build a basic preview from title
-                    if (invitation.getMessage() != null && !invitation.getMessage().trim().isEmpty()) {
-                        composedMessage = invitation.getMessage();
-                    } else {
-                        composedMessage = invitation.getTitle() + "\n\n" +
-                                "(WhatsApp Template: " + invitation.getTemplateName() + ")\n" +
-                                "Note: The actual template content was sent via WhatsApp but not stored for display.";
-                    }
-                } else {
-                    // For plain text messages, combine title and message
-                    composedMessage = (invitation.getTitle() != null ? invitation.getTitle() + "\n\n" : "") +
-                            (invitation.getMessage() != null ? invitation.getMessage() : "");
-                }
-
-                boolean sent = whatsAppService.sendMessage(
-                        invitation.getEvent(), // Pass the event for Cloud API configuration
-                        guest.getContactPhone(),
-                        invitation.getTitle(),
-                        invitation.getMessage(),
-                        invitation.getImageUrl(),
-                        invitation.getMessageType(),
-                        invitation.getTemplateName(),
-                        invitation.getTemplateLanguage()
-                );
-
-                if (sent) {
-                    log.setDeliveryStatus("SENT");
-                    log.setDeliveryTimestamp(LocalDateTime.now());
-                    log.setWhatsappMessageText(composedMessage);
-
-                    // Create GuestMessage record so invitation appears in messages
-                    try {
-                        String messageText = composedMessage != null ? composedMessage : (invitation.getTitle() + "\n\n" + invitation.getMessage());
-                        logger.info("Creating GuestMessage for guest {} with text: {}", guestId, messageText.substring(0, Math.min(50, messageText.length())) + "...");
-
-                        GuestMessage guestMessage = messageService.createOutboundMessage(
-                            invitation.getEvent(),
-                            guest,
-                            messageText
-                        );
-                        guestMessage.setStatus(GuestMessage.MessageStatus.SENT);
-                        guestMessage.setMessageType(GuestMessage.MessageType.TEXT);
-                        messageService.updateMessage(guestMessage);
-
-                        logger.info("✓ Successfully created GuestMessage record ID {} for invitation to guest {} in event {}",
-                            guestMessage.getId(), guestId, invitation.getEvent().getId());
-                    } catch (Exception msgEx) {
-                        logger.error("✗ Failed to create GuestMessage for invitation to guest {}: {}", guestId, msgEx.getMessage(), msgEx);
-                        // Don't fail the invitation send if message record creation fails
-                    }
-                } else {
-                    log.setDeliveryStatus("FAILED");
-                    log.setErrorMessage("Failed to send WhatsApp message");
-                }
-            } catch (Exception e) {
-                logger.error("Error sending WhatsApp to guest {}: {}", guestId, e.getMessage());
-                log.setDeliveryStatus("FAILED");
-                log.setErrorMessage(e.getMessage());
-            }
 
             InvitationLog savedLog = invitationLogRepository.save(log);
             logs.add(savedLog);
 
-            // Record invitation sent to each of the guest's phone numbers
+            logger.info("✓ Recorded invitation sent to guest {} via {}", guestId, method);
+
+            // Create GuestMessage record for tracking
+            try {
+                String messageText = (invitation.getTitle() != null ? invitation.getTitle() + "\n\n" : "") +
+                        (invitation.getMessage() != null ? invitation.getMessage() : "");
+
+                GuestMessage guestMessage = messageService.createOutboundMessage(
+                    invitation.getEvent(),
+                    guest,
+                    messageText
+                );
+                guestMessage.setStatus(GuestMessage.MessageStatus.SENT);
+                guestMessage.setMessageType(GuestMessage.MessageType.TEXT);
+                messageService.updateMessage(guestMessage);
+
+                logger.info("Created GuestMessage record for invitation to guest {}", guestId);
+            } catch (Exception msgEx) {
+                logger.error("Failed to create GuestMessage for invitation to guest {}: {}", guestId, msgEx.getMessage());
+                // Don't fail the overall operation
+            }
+
+            // Record invitation sent to each of the guest's phone numbers if they have any
             try {
                 if (guest.getPhoneNumbers() != null && !guest.getPhoneNumbers().isEmpty()) {
                     logger.info("Recording invitation phone records for guest {} with {} phone numbers",
                             guestId, guest.getPhoneNumbers().size());
                     invitationPhoneRecordService.recordInvitationForAllGuestPhones(
                             savedLog.getId(),
-                            "WHATSAPP",
-                            savedLog.getDeliveryStatus()
+                            method != null ? method : "EMAIL",
+                            "SENT"
                     );
-                } else {
-                    logger.warn("Guest {} has no phone numbers to record", guestId);
                 }
             } catch (Exception phoneEx) {
                 logger.error("Failed to record invitation phone records for guest {}: {}", guestId, phoneEx.getMessage());
-                // Don't fail the overall operation if phone record creation fails
+                // Don't fail if phone records can't be created
             }
         }
 
@@ -207,52 +165,14 @@ public class InvitationLogService {
         return invitationLogRepository.countByInvitationIdAndStatus(invitationId, "FAILED");
     }
 
-    @Transactional
-    public void retryFailedDelivery(Long logId) {
-        Optional<InvitationLog> logOpt = invitationLogRepository.findById(logId);
-        if (logOpt.isEmpty() || !logOpt.get().getDeliveryStatus().equals("FAILED")) {
-            return;
-        }
-
-        InvitationLog log = logOpt.get();
-        try {
-            boolean sent = whatsAppService.sendMessage(
-                    log.getWhatsappNumber(),
-                    log.getInvitation().getTitle(),
-                    log.getInvitation().getMessage(),
-                    log.getInvitation().getImageUrl()
-            );
-
-            if (sent) {
-                log.setDeliveryStatus("SENT");
-                log.setDeliveryTimestamp(LocalDateTime.now());
-                log.setErrorMessage(null);
-
-                // Create GuestMessage record for retry success
-                try {
-                    GuestMessage guestMessage = messageService.createOutboundMessage(
-                        log.getInvitation().getEvent(),
-                        log.getGuest(),
-                        log.getInvitation().getTitle() + "\n\n" + log.getInvitation().getMessage()
-                    );
-                    guestMessage.setStatus(GuestMessage.MessageStatus.SENT);
-                    messageService.updateMessage(guestMessage);
-                    logger.info("Created GuestMessage record for retried invitation to guest {}", log.getGuest().getId());
-                } catch (Exception msgEx) {
-                    logger.error("Failed to create GuestMessage for retried invitation: {}", msgEx.getMessage());
-                }
-            }
-        } catch (Exception e) {
-            logger.error("Retry failed for log {}: {}", logId, e.getMessage());
-            log.setErrorMessage("Retry failed: " + e.getMessage());
-        }
-
-        invitationLogRepository.save(log);
-    }
-
     /**
-     * Mark an invitation as sent externally (email, phone call, in-person, etc.)
-     * Creates an invitation log without actually sending via WhatsApp
+     * Mark an invitation as sent externally (email, phone call, in-person, SMS, etc.)
+     * Creates an invitation log without actually sending via any service
+     * @param invitationId ID of the invitation
+     * @param guestId ID of the guest
+     * @param externalMethod Description of how it was sent (e.g., "Email", "Phone Call", "SMS")
+     * @param sentBy Username of person who sent it
+     * @return Created invitation log
      */
     @Transactional
     public InvitationLog markInvitationSentExternally(Long invitationId, Long guestId,
@@ -285,20 +205,19 @@ public class InvitationLogService {
                 .sentAt(LocalDateTime.now())
                 .deliveryStatus("SENT")
                 .deliveryTimestamp(LocalDateTime.now())
-                .invitationMethod("EXTERNAL")
+                .invitationMethod("EMAIL")
                 .externalMethodDescription(externalMethod)
                 .build();
 
         InvitationLog savedLog = invitationLogRepository.save(log);
-        logger.info("Marked invitation {} as sent externally to guest {} via {}",
-                   invitationId, guestId, externalMethod);
+        logger.info("Marked invitation {} as sent externally to guest {} via {}", invitationId, guestId, externalMethod);
 
         // Create GuestMessage record for external invitation
         try {
             GuestMessage guestMessage = messageService.createOutboundMessage(
                 invitation.getEvent(),
                 guest,
-                "[External: " + externalMethod + "] " + invitation.getTitle() + "\n\n" + invitation.getMessage()
+                "[" + externalMethod + "] " + invitation.getTitle() + "\n\n" + invitation.getMessage()
             );
             guestMessage.setStatus(GuestMessage.MessageStatus.DELIVERED);
             messageService.updateMessage(guestMessage);
@@ -307,11 +226,29 @@ public class InvitationLogService {
             logger.error("Failed to create GuestMessage for external invitation: {}", msgEx.getMessage());
         }
 
+        // Record invitation for guest's phone numbers
+        try {
+            if (guest.getPhoneNumbers() != null && !guest.getPhoneNumbers().isEmpty()) {
+                invitationPhoneRecordService.recordInvitationForAllGuestPhones(
+                    savedLog.getId(),
+                    externalMethod,
+                    "SENT"
+                );
+            }
+        } catch (Exception phoneEx) {
+            logger.error("Failed to record invitation phone records: {}", phoneEx.getMessage());
+        }
+
         return savedLog;
     }
 
     /**
      * Mark multiple invitations as sent externally
+     * @param invitationId ID of the invitation
+     * @param guestIds List of guest IDs
+     * @param externalMethod How it was sent (Email, SMS, etc.)
+     * @param sentBy Username of person who sent it
+     * @return List of created invitation logs
      */
     @Transactional
     public List<InvitationLog> markMultipleInvitationsSentExternally(Long invitationId, List<Long> guestIds,
@@ -329,181 +266,137 @@ public class InvitationLogService {
     }
 
     /**
-     * Send invitation to guest recording it against all their phone numbers
-     */
-    @Transactional
-    public InvitationLog sendInvitationWithAllPhones(Long invitationId, Long guestId, String sentBy, String contactMethod) {
-        Optional<Invitation> invitationOpt = invitationRepository.findById(invitationId);
-        Optional<Guest> guestOpt = guestRepository.findById(guestId);
-
-        if (invitationOpt.isEmpty()) {
-            throw new RuntimeException("Invitation not found with id: " + invitationId);
-        }
-        if (guestOpt.isEmpty()) {
-            throw new RuntimeException("Guest not found with id: " + guestId);
-        }
-
-        Invitation invitation = invitationOpt.get();
-        Guest guest = guestOpt.get();
-
-        // Check if invitation already sent to this guest
-        Optional<InvitationLog> existingLog = invitationLogRepository.findByInvitationIdAndGuestId(invitationId, guestId);
-        if (existingLog.isPresent()) {
-            logger.info("Invitation already sent to guest: {}", guestId);
-            throw new RuntimeException("Invitation already sent to this guest");
-        }
-
-        // Create invitation log
-        InvitationLog log = InvitationLog.builder()
-                .invitation(invitation)
-                .guest(guest)
-                .sentBy(sentBy)
-                .sentAt(LocalDateTime.now())
-                .whatsappNumber(guest.getPrimaryPhoneNumberString())
-                .deliveryStatus("SENT")
-                .build();
-
-        InvitationLog savedLog = invitationLogRepository.save(log);
-
-        // Record the invitation for ALL phone numbers of the guest
-        invitationPhoneRecordService.recordInvitationForAllGuestPhones(
-            savedLog.getId(),
-            contactMethod != null ? contactMethod : "WHATSAPP",
-            "SENT"
-        );
-
-        logger.info("Recorded invitation {} to guest {} with all phone numbers", invitationId, guestId);
-        return savedLog;
-    }
-
-    /**
-     * Send invitation to guest recording it against selected phone numbers
-     */
-    @Transactional
-    public InvitationLog sendInvitationWithSelectedPhones(Long invitationId, Long guestId,
-                                                          List<Long> selectedPhoneNumberIds, String sentBy,
-                                                          String contactMethod) {
-        Optional<Invitation> invitationOpt = invitationRepository.findById(invitationId);
-        Optional<Guest> guestOpt = guestRepository.findById(guestId);
-
-        if (invitationOpt.isEmpty()) {
-            throw new RuntimeException("Invitation not found with id: " + invitationId);
-        }
-        if (guestOpt.isEmpty()) {
-            throw new RuntimeException("Guest not found with id: " + guestId);
-        }
-        if (selectedPhoneNumberIds == null || selectedPhoneNumberIds.isEmpty()) {
-            throw new RuntimeException("At least one phone number must be selected");
-        }
-
-        Invitation invitation = invitationOpt.get();
-        Guest guest = guestOpt.get();
-
-        // Check if invitation already sent to this guest
-        Optional<InvitationLog> existingLog = invitationLogRepository.findByInvitationIdAndGuestId(invitationId, guestId);
-        if (existingLog.isPresent()) {
-            logger.info("Invitation already sent to guest: {}", guestId);
-            throw new RuntimeException("Invitation already sent to this guest");
-        }
-
-        // Create invitation log
-        InvitationLog log = InvitationLog.builder()
-                .invitation(invitation)
-                .guest(guest)
-                .sentBy(sentBy)
-                .sentAt(LocalDateTime.now())
-                .whatsappNumber(guest.getPrimaryPhoneNumberString())
-                .deliveryStatus("SENT")
-                .build();
-
-        InvitationLog savedLog = invitationLogRepository.save(log);
-
-        // Record the invitation for SELECTED phone numbers of the guest
-        invitationPhoneRecordService.recordInvitationForSelectedPhones(
-            savedLog.getId(),
-            selectedPhoneNumberIds,
-            contactMethod != null ? contactMethod : "WHATSAPP",
-            "SENT"
-        );
-
-        logger.info("Recorded invitation {} to guest {} with {} selected phone numbers",
-                   invitationId, guestId, selectedPhoneNumberIds.size());
-        return savedLog;
-    }
-
-    /**
-     * Mark invitation as sent externally with phone numbers recorded
-     */
-    @Transactional
-    public InvitationLog markInvitationSentExternallyWithPhones(Long invitationId, Long guestId,
-                                                               List<Long> phoneNumberIds,
-                                                               String externalMethod, String sentBy) {
-        Optional<Invitation> invitationOpt = invitationRepository.findById(invitationId);
-        if (invitationOpt.isEmpty()) {
-            throw new RuntimeException("Invitation not found with id: " + invitationId);
-        }
-
-        Optional<Guest> guestOpt = guestRepository.findById(guestId);
-        if (guestOpt.isEmpty()) {
-            throw new RuntimeException("Guest not found with id: " + guestId);
-        }
-
-        Guest guest = guestOpt.get();
-
-        // Check if invitation already sent to this guest
-        Optional<InvitationLog> existingLog = invitationLogRepository.findByInvitationIdAndGuestId(invitationId, guestId);
-        if (existingLog.isPresent()) {
-            logger.info("Invitation already sent to guest: {}", guestId);
-            throw new RuntimeException("Invitation already sent to this guest");
-        }
-
-        // Create invitation log for external invitation
-        InvitationLog log = InvitationLog.builder()
-                .invitation(invitationOpt.get())
-                .guest(guest)
-                .sentBy(sentBy)
-                .sentAt(LocalDateTime.now())
-                .deliveryStatus("SENT")
-                .deliveryTimestamp(LocalDateTime.now())
-                .invitationMethod("EXTERNAL")
-                .externalMethodDescription(externalMethod)
-                .build();
-
-        InvitationLog savedLog = invitationLogRepository.save(log);
-
-        // Record for specific phones if provided, otherwise all phones
-        if (phoneNumberIds != null && !phoneNumberIds.isEmpty()) {
-            invitationPhoneRecordService.recordInvitationForSelectedPhones(
-                savedLog.getId(),
-                phoneNumberIds,
-                externalMethod,
-                "SENT"
-            );
-        } else {
-            invitationPhoneRecordService.recordInvitationForAllGuestPhones(
-                savedLog.getId(),
-                externalMethod,
-                "SENT"
-            );
-        }
-
-        logger.info("Marked invitation {} as sent externally to guest {} via {} on phone numbers",
-                   invitationId, guestId, externalMethod);
-
-        return savedLog;
-    }
-
-    /**
-     * Get phone contact history for an invitation (how many phones contacted, delivery status, etc.)
+     * Get phone contact history for an invitation
+     * @param invitationId ID of the invitation
+     * @return List of phone records showing which phones received the invitation
      */
     public List<InvitationPhoneRecord> getPhoneContactHistory(Long invitationId) {
         return invitationPhoneRecordService.getPhoneRecordsForInvitation(invitationId);
     }
 
     /**
-     * Get statistics about phone numbers contacted for an invitation
+     * Queue invitations for delivery via selected mode (email, sms, whatsapp_personal, whatsapp_adb)
+     * Creates InvitationLog entries with QUEUED status and enqueues DeliveryRequests
      */
-    public Map<String, Object> getPhoneContactStatistics(Long invitationId) {
-        return invitationPhoneRecordService.getInvitationStatistics(invitationId);
+    @Transactional
+    public List<InvitationLog> queueInvitationsForDelivery(Long invitationId, List<Long> guestIds, String queuedBy, String mode) {
+        Optional<Invitation> invitationOpt = invitationRepository.findById(invitationId);
+        if (invitationOpt.isEmpty()) {
+            throw new RuntimeException("Invitation not found with id: " + invitationId);
+        }
+        Invitation invitation = invitationOpt.get();
+
+        // Use invitation's delivery method if mode not specified
+        String deliveryMethod = (mode != null && !mode.isEmpty()) ? mode : invitation.getDeliveryMethod();
+        if (deliveryMethod == null || deliveryMethod.isEmpty()) {
+            throw new RuntimeException("No delivery method specified");
+        }
+
+        DeliveryMode deliveryMode = mapDeliveryMethodToMode(deliveryMethod);
+        List<InvitationLog> logs = new ArrayList<>();
+
+        for (Long guestId : guestIds) {
+            Optional<Guest> guestOpt = guestRepository.findById(guestId);
+            if (guestOpt.isEmpty()) {
+                logger.warn("Guest not found with id: {}", guestId);
+                continue;
+            }
+            Guest guest = guestOpt.get();
+
+            // Build delivery request based on invitation's delivery method
+            String title = getContentTitle(invitation, deliveryMethod);
+            String content = getContentBody(invitation, deliveryMethod);
+
+            DeliveryRequest request = DeliveryRequest.builder()
+                    .messageType("INVITATION")
+                    .title(title)
+                    .content(content)
+                    .recipient(guest)
+                    .event(invitation.getEvent())
+                    .preferredMode(deliveryMode)
+                    .build();
+
+            String messageId = messageDeliveryService.queueMessage(request);
+
+            // Create log with QUEUED status
+            InvitationLog log = InvitationLog.builder()
+                    .invitation(invitation)
+                    .guest(guest)
+                    .sentBy(queuedBy)
+                    .sentAt(LocalDateTime.now())
+                    .deliveryStatus("QUEUED")
+                    .invitationMethod(deliveryMethod)
+                    .build();
+            InvitationLog saved = invitationLogRepository.save(log);
+            logs.add(saved);
+
+            logger.info("Queued invitation {} for guest {} via {} (messageId={})", invitationId, guestId, deliveryMethod, messageId);
+        }
+
+        return logs;
+    }
+
+    /**
+     * Get content title based on delivery method
+     */
+    private String getContentTitle(Invitation invitation, String deliveryMethod) {
+        switch (deliveryMethod.toLowerCase()) {
+            case "email":
+                return invitation.getEmailSubject() != null ? invitation.getEmailSubject() : invitation.getTitle();
+            case "sms":
+            case "whatsapp-personal":
+            case "whatsapp-adb":
+            case "whatsapp-business":
+            case "external":
+            default:
+                return invitation.getTitle();
+        }
+    }
+
+    /**
+     * Get content body based on delivery method
+     */
+    private String getContentBody(Invitation invitation, String deliveryMethod) {
+        switch (deliveryMethod.toLowerCase()) {
+            case "email":
+                return invitation.getEmailBody() != null ? invitation.getEmailBody() : invitation.getMessage();
+            case "sms":
+                return invitation.getSmsText() != null ? invitation.getSmsText() : invitation.getMessage();
+            case "whatsapp-personal":
+            case "whatsapp-adb":
+            case "whatsapp-business":
+                return invitation.getWhatsappText() != null ? invitation.getWhatsappText() : invitation.getMessage();
+            case "external":
+            default:
+                return invitation.getMessage();
+        }
+    }
+
+    /**
+     * Map delivery method string to DeliveryMode enum
+     */
+    private DeliveryMode mapDeliveryMethodToMode(String deliveryMethod) {
+        if (deliveryMethod == null) return DeliveryMode.EMAIL;
+        switch (deliveryMethod.toLowerCase()) {
+            case "email":
+                return DeliveryMode.EMAIL;
+            case "sms":
+                return DeliveryMode.SMS;
+            case "whatsapp-personal":
+                return DeliveryMode.WHATSAPP_PERSONAL;
+            case "whatsapp-adb":
+                return DeliveryMode.WHATSAPP_ADB;
+            case "whatsapp-business":
+                return DeliveryMode.WHATSAPP_PERSONAL; // Map to personal for now
+            case "external":
+                return DeliveryMode.EXTERNAL;
+            default:
+                logger.warn("Unknown delivery method '{}', defaulting to EMAIL", deliveryMethod);
+                return DeliveryMode.EMAIL;
+        }
+    }
+
+    private DeliveryMode mapMode(String mode) {
+        return mapDeliveryMethodToMode(mode);
     }
 }

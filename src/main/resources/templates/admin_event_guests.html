@@ -15,9 +15,6 @@
             <p class="text-muted" th:text="'Bride: ' + ${event.brideName} + ' | Groom: ' + ${event.groomName}"></p>
         </div>
         <div>
-            <a th:href="@{/events/{id}/guests/whatsapp-rsvp-send(id=${event.id})}" class="btn btn-success me-2">
-                <i class="bi bi-whatsapp"></i> Send WhatsApp RSVP
-            </a>
             <a th:href="@{/admin/events/{id}/guests/new(id=${event.id})}" class="btn btn-success">
                 <i class="bi bi-plus-circle"></i> Add Guest
             </a>
@@ -53,14 +50,14 @@
                     <tbody>
                     <tr th:each="guest : ${guests}">
                         <td th:text="${guest.familyName}"></td>
-                        <td th:text="${guest.contactName}"></td>
+                        <td th:text="${guest.contactFirstName} + ' ' + ${guest.contactLastName}"></td>
                         <td th:text="${guest.contactEmail}"></td>
                         <td>
-                            <span th:if="${guest.primaryPhoneNumberString != null}"
-                                  th:text="${guest.primaryPhoneNumberString}"
+                            <span th:if="${guest.primaryPhoneNumber != null}"
+                                  th:text="${guest.primaryPhoneNumber}"
                                   th:title="${guest.phoneNumbers.size() > 1 ? 'Primary • Total: ' + guest.phoneNumbers.size() : ''}"
                                   th:class="${guest.phoneNumbers.size() > 1 ? 'cursor-help' : ''}"></span>
-                            <span th:if="${guest.primaryPhoneNumberString == null}" class="text-muted">-</span>
+                            <span th:if="${guest.primaryPhoneNumber == null}" class="text-muted">-</span>
                         </td>
                         <td th:text="${guest.side}"></td>
                         <td th:text="${guest.maxAttendees}"></td>
@@ -68,10 +65,10 @@
                             <button type="button"
                                     class="btn btn-sm btn-success me-1 send-whatsapp-btn"
                                     th:data-guest-id="${guest.id}"
-                                    th:data-guest-name="${guest.contactName}"
+                                    th:data-guest-name="${guest.contactFirstName} + ' ' + ${guest.contactLastName}"
                                     th:data-event-id="${event.id}"
-                                    th:disabled="${guest.primaryPhoneNumberString == null}"
-                                    th:title="${guest.primaryPhoneNumberString != null ? 'Send WhatsApp RSVP' : 'No phone number'}">
+                                    th:disabled="${guest.primaryPhoneNumber == null}"
+                                    th:title="${guest.primaryPhoneNumber != null ? 'Send WhatsApp RSVP' : 'No phone number'}">
                                 <i class="bi bi-whatsapp"></i>
                             </button>
                             <a th:href="@{/admin/guests/{id}/edit(id=${guest.id})}" class="btn btn-sm btn-warning me-1">

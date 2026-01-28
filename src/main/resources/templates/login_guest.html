@@ -4,6 +4,12 @@
     <title>Guest Login</title>
     <meta charset="UTF-8">
     <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
+    <script>
+      // Clear JSESSIONID cookie on login page load to avoid stale session issues
+      document.addEventListener('DOMContentLoaded', function() {
+        document.cookie = 'JSESSIONID=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      });
+    </script>
 </head>
 <body class="bg-light">
 <div class="container py-5">
@@ -15,17 +21,18 @@
           <div th:if="${loginError}" class="alert alert-danger" th:text="${loginError}"></div>
           <form th:action="@{/login/guest}" method="post">
             <div class="mb-3">
-              <label for="lastname" class="form-label">Family Name</label>
-              <input type="text" id="lastname" name="lastname" class="form-control" required>
+              <label for="contactLastName" class="form-label">Your Last Name (Surname)</label>
+              <input type="text" id="contactLastName" name="contactLastName" class="form-control" required>
+              <div class="form-text">Enter the last name associated with the phone contact</div>
             </div>
             <div class="mb-3">
-              <label for="mobile" class="form-label">Mobile Number</label>
+              <label for="mobile" class="form-label">Phone Number</label>
               <input type="text" id="mobile" name="mobile" class="form-control"
-                     placeholder="+91 98765 43210 or +1 (555) 123-4567"
+                     placeholder="e.g., +44 7700 900123 or 0044 7700 900123 or 07700 900123"
                      pattern="^\+?[0-9\s\-\(\)]+$"
-                     title="Please enter your mobile number with country code"
+                     title="Please enter your mobile number with or without country code"
                      required>
-              <div class="form-text">Enter with country code (e.g., +91 9876543210)</div>
+              <div class="form-text">Formats accepted: +44..., 0044..., 0..., or just digits</div>
             </div>
             <button type="submit" class="btn btn-primary w-100">Login</button>
           </form>

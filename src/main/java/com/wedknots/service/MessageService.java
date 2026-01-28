@@ -186,7 +186,6 @@ public class MessageService {
             .direction(GuestMessage.MessageDirection.INBOUND)
             .messageType(messageType != null ? messageType : GuestMessage.MessageType.TEXT)
             .mediaUrl(mediaUrl)
-            .whatsappMessageId(whatsappMessageId)
             .status(GuestMessage.MessageStatus.DELIVERED)
             .isRead(false)
             .createdAt(LocalDateTime.now())
@@ -195,31 +194,6 @@ public class MessageService {
         return guestMessageRepository.save(message);
     }
 
-    /**
-     * Update message status from WhatsApp webhook
-     */
-    public GuestMessage updateMessageStatus(String whatsappMessageId, String status) {
-        Optional<GuestMessage> messageOpt = guestMessageRepository.findByWhatsappMessageId(whatsappMessageId);
-
-        if (messageOpt.isEmpty()) {
-            logger.warn("Received status update for unknown message ID: {}", whatsappMessageId);
-            return null;
-        }
-
-        GuestMessage message = messageOpt.get();
-        try {
-            message.setStatus(GuestMessage.MessageStatus.valueOf(status.toUpperCase()));
-
-            // Update read timestamp if status is READ
-            if (GuestMessage.MessageStatus.READ.equals(message.getStatus())) {
-                message.setReadAt(LocalDateTime.now());
-            }
-        } catch (IllegalArgumentException e) {
-            logger.warn("Unknown message status: {}", status);
-        }
-
-        return guestMessageRepository.save(message);
-    }
 
     /**
      * Get conversation between host and guest (all messages in both directions)

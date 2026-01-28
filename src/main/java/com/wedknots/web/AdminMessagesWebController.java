@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 /**
- * Admin web controller for WhatsApp message management UI
+ * Admin web controller for message management UI
  */
 @Controller
 @RequestMapping("/admin/messages")

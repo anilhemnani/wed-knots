@@ -78,7 +78,7 @@
                     <tbody>
                     <tr th:each="rsvp : ${rsvps}">
                         <td>
-                            <span th:if="${rsvp.guest != null}" th:text="${rsvp.guest.contactName}"></span>
+                            <span th:if="${rsvp.guest != null}" th:text="${rsvp.guest.contactFirstName} + ' ' + ${rsvp.guest.contactLastName}"></span>
                         </td>
                         <td>
                             <span th:if="${rsvp.status == 'Accepted'}" class="badge bg-success" th:text="${rsvp.status}"></span>

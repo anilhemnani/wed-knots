@@ -26,8 +26,8 @@ public class HomeController {
             }
         }
 
-        // If not authenticated, show home page
-        return "index";
+        // If not authenticated, redirect guests to login page
+        return "redirect:/login/guest";
     }
 }
 

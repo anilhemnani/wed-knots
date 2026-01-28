@@ -8,106 +8,142 @@
 <body class="bg-light">
 <th:block th:replace="~{_navbar :: hostNav}"></th:block>
 <div class="container py-5">
-  <div class="row justify-content-center">
-    <div class="col-md-8">
-      <div class="card shadow">
-        <div class="card-header bg-primary text-white">
-          <h4 class="mb-0" th:text="${event.id != null ? 'Edit Event' : 'Create New Event'}">Event Form</h4>
-        </div>
-        <div class="card-body">
-          <form th:action="${event.id != null ? '/events/' + event.id + '/edit' : '/events/new'}"
-                method="post" th:object="${event}">
-
-            <div class="mb-3">
-              <label for="name" class="form-label">Event Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="name" th:field="*{name}" required
-                     placeholder="e.g., Ravi & Meera Wedding">
-            </div>
-
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label for="bride_name" class="form-label">Bride Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="bride_name" th:field="*{brideName}" required
-                       placeholder="Bride's name">
-              </div>
-              <div class="col-md-6 mb-3">
-                <label for="groom_name" class="form-label">Groom Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="groom_name" th:field="*{groomName}" required
-                       placeholder="Groom's name">
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label for="date" class="form-label">Event Date <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" id="date" th:field="*{date}" required>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
-                <select class="form-select" id="status" th:field="*{status}" required>
-                  <option value="">Select status</option>
-                  <option value="Draft">Draft</option>
-                  <option value="Published">Published</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-md-12 mb-3">
-                <label for="subdomain" class="form-label">Subdomain <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="subdomain" th:field="*{subdomain}"
-                       th:disabled="${event.id != null}" required
-                       placeholder="e.g., pratibha-karthik (lowercase, alphanumeric and hyphens only)"
-                       pattern="^[a-z0-9-]+$"
-                       title="Subdomain must be lowercase letters, numbers, and hyphens only">
-                <div class="form-text" th:if="${event.id == null}">
-                  Unique identifier for public event page. Can only be set during creation.
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0" th:text="${event.id != null ? 'Edit Event' : 'Create New Event'}">Event Form</h4>
                 </div>
-                <div class="form-text alert alert-info mt-2" th:if="${event.id != null}">
-                  <strong>Note:</strong> Subdomain cannot be changed after event creation. Current subdomain: <code th:text="${event.subdomain}"></code>
+                <div class="card-body">
+                    <form th:action="${event.id != null ? '/events/' + event.id + '/edit' : '/events/new'}"
+                          method="post" th:object="${event}">
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Event Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" th:field="*{name}" required
+                                   placeholder="e.g., Ravi & Meera Wedding">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="bride_name" class="form-label">Bride Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="bride_name" th:field="*{brideName}" required
+                                       placeholder="Bride's name">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="groom_name" class="form-label">Groom Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="groom_name" th:field="*{groomName}" required
+                                       placeholder="Groom's name">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="date" class="form-label">Event Date <span
+                                        class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="date" th:field="*{date}" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="about_location_url" class="form-label">About Location URL</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="about_location_url"
+                                           th:field="*{aboutLocationUrl}"
+                                           placeholder="e.g., /events/{eventId}/about/index.html">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="fillAboutLocationUrl()">Auto-fill</button>
+                                </div>
+                                <div class="form-text">Relative URL to a page with more information about the event location (e.g., /events/1/about/index.html).<br>
+                                    <b>Recommended:</b> /events/{eventId}/about/index.html
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="place" class="form-label">Event Location (Place)</label>
+                                <input type="text" class="form-control" id="place" th:field="*{place}"
+                                       placeholder="e.g., Bekal, Kerala">
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="subdomain" class="form-label">Subdomain <span
+                                            class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="subdomain" th:field="*{subdomain}"
+                                           th:disabled="${event.id != null}" required
+                                           placeholder="e.g., pratibha-karthik (lowercase, alphanumeric and hyphens only)"
+                                           pattern="^[a-z0-9-]+$"
+                                           title="Subdomain must be lowercase letters, numbers, and hyphens only">
+                                    <div class="form-text" th:if="${event.id == null}">
+                                        Unique identifier for public event page. Can only be set during creation.
+                                    </div>
+                                    <div class="form-text alert alert-info mt-2" th:if="${event.id != null}">
+                                        <strong>Note:</strong> Subdomain cannot be changed after event creation. Current
+                                        subdomain: <code th:text="${event.subdomain}"></code>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="expected_arrival" class="form-label">Expected Guest Arrival Date</label>
+                                    <input type="date" class="form-control" id="expected_arrival"
+                                           th:field="*{expectedGuestArrivalDate}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="expected_departure" class="form-label">Expected Guest Departure
+                                        Date</label>
+                                    <input type="date" class="form-control" id="expected_departure"
+                                           th:field="*{expectedGuestDepartureDate}">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="preferred_airport" class="form-label">Preferred Travel Airport</label>
+                                    <input type="text" class="form-control" id="preferred_airport"
+                                           th:field="*{preferredTravelAirport}" placeholder="e.g., Mangluru, DEL, BOM">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="preferred_station" class="form-label">Preferred Travel Station</label>
+                                    <input type="text" class="form-control" id="preferred_station"
+                                           th:field="*{preferredTravelStation}"
+                                           placeholder="e.g., Kasaragod, NDLS, BCT">
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="default_max_allowed_attendees" class="form-label">Default Max Allowed Attendees</label>
+                                <input type="number" class="form-control" id="default_max_allowed_attendees"
+                                       th:field="*{defaultMaxAllowedAttendees}" min="1">
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="/events" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i>
+                                <span th:text="${event.id != null ? 'Update Event' : 'Create Event'}">Save</span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
-              </div>
             </div>
-
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label for="expected_arrival" class="form-label">Expected Guest Arrival Date</label>
-                <input type="date" class="form-control" id="expected_arrival" th:field="*{expectedGuestArrivalDate}">
-              </div>
-              <div class="col-md-6 mb-3">
-                <label for="expected_departure" class="form-label">Expected Guest Departure Date</label>
-                <input type="date" class="form-control" id="expected_departure" th:field="*{expectedGuestDepartureDate}">
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label for="preferred_airport" class="form-label">Preferred Travel Airport</label>
-                <input type="text" class="form-control" id="preferred_airport" th:field="*{preferredTravelAirport}" placeholder="e.g., Mangluru, DEL, BOM">
-              </div>
-              <div class="col-md-6 mb-3">
-                <label for="preferred_station" class="form-label">Preferred Travel Station</label>
-                <input type="text" class="form-control" id="preferred_station" th:field="*{preferredTravelStation}" placeholder="e.g., Kasaragod, NDLS, BCT">
-              </div>
-            </div>
-
-            <div class="d-flex justify-content-between mt-4">
-              <a href="/events" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Cancel
-              </a>
-              <button type="submit" class="btn btn-primary">
-                <i class="bi bi-save"></i>
-                <span th:text="${event.id != null ? 'Update Event' : 'Create Event'}">Save</span>
-              </button>
-            </div>
-          </form>
         </div>
-      </div>
     </div>
-  </div>
 </div>
+<script>
+function fillAboutLocationUrl() {
+    var eventId = document.querySelector('form').action.match(/events\/(\d+)/);
+    if (eventId && eventId[1]) {
+        document.getElementById('about_location_url').value = '/events/' + eventId[1] + '/about/index.html';
+    } else {
+        document.getElementById('about_location_url').value = '/events/{eventId}/about/index.html';
+    }
+}
+</script>
 </body>
 </html>
 

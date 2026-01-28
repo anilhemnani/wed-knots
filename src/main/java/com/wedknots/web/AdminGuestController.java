@@ -108,10 +108,12 @@ public class AdminGuestController {
             @PathVariable Long guestId,
             @RequestParam String phoneNumber,
             @RequestParam(required = false, defaultValue = "PERSONAL") String phoneType,
+            @RequestParam(required = false) String contactFirstName,
+            @RequestParam(required = false) String contactLastName,
             RedirectAttributes redirectAttributes) {
         try {
             GuestPhoneNumber.PhoneType type = GuestPhoneNumber.PhoneType.valueOf(phoneType);
-            guestService.addPhoneNumber(guestId, phoneNumber, type);
+            guestService.addPhoneNumber(guestId, phoneNumber, type, contactFirstName, contactLastName);
             redirectAttributes.addFlashAttribute("successMessage", "Phone number added successfully");
         } catch (RuntimeException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
@@ -120,18 +122,23 @@ public class AdminGuestController {
     }
 
     /**
-     * Set a phone number as primary (Admin)
+     * Edit/update a phone number (Admin)
      */
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/{guestId}/set-primary-phone/{phoneId}")
-    public String setPrimaryPhone(
+    @PostMapping("/{guestId}/edit-phone/{phoneId}")
+    public String editPhoneNumber(
             @PathVariable Long eventId,
             @PathVariable Long guestId,
             @PathVariable Long phoneId,
+            @RequestParam String phoneNumber,
+            @RequestParam(required = false, defaultValue = "PERSONAL") String phoneType,
+            @RequestParam(required = false) String contactFirstName,
+            @RequestParam(required = false) String contactLastName,
             RedirectAttributes redirectAttributes) {
         try {
-            guestService.setPrimaryPhoneNumber(guestId, phoneId);
-            redirectAttributes.addFlashAttribute("successMessage", "Primary phone number updated");
+            GuestPhoneNumber.PhoneType type = GuestPhoneNumber.PhoneType.valueOf(phoneType);
+            guestService.updatePhoneNumber(guestId, phoneId, phoneNumber, type, contactFirstName, contactLastName);
+            redirectAttributes.addFlashAttribute("successMessage", "Phone number updated successfully");
         } catch (RuntimeException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
@@ -156,31 +163,4 @@ public class AdminGuestController {
         }
         return "redirect:/admin/events/" + eventId + "/guests/" + guestId + "/edit";
     }
-
-    /**
-     * WhatsApp RSVP Send Page (Admin)
-     * Display UI for sending WhatsApp RSVP requests to guests
-     */
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/whatsapp-rsvp-send")
-    public String whatsappRsvpSendPage(@PathVariable Long eventId, Model model) {
-        Optional<WeddingEvent> eventOpt = weddingEventRepository.findById(eventId);
-        if (eventOpt.isEmpty()) {
-            return "redirect:/admin/events";
-        }
-
-        WeddingEvent event = eventOpt.get();
-        List<Guest> guests = guestRepository.findAll().stream()
-                .filter(g -> g.getEventId() != null && g.getEventId().equals(eventId))
-                .toList();
-
-        model.addAttribute("event", event);
-        model.addAttribute("guests", guests);
-        model.addAttribute("whatsappConfigured",
-            Boolean.TRUE.equals(event.getWhatsappApiEnabled()) &&
-            event.getWhatsappPhoneNumberId() != null);
-
-        return "host/whatsapp_rsvp_send";
-    }
 }
-

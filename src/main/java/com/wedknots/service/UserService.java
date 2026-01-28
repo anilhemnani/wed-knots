@@ -20,6 +20,8 @@ public class UserService {
     private GuestRepository guestRepository;
     @Autowired
     private HostRepository hostRepository;
+    @Autowired
+    private GuestAuthenticationService guestAuthService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public void registerUser(User user, String role) {
@@ -42,36 +44,24 @@ public class UserService {
         return "SUCCESS";
     }
 
-    public String validateGuestLogin(String lastName, String mobile) {
-        // Try to find guest by family name and ANY of their phone numbers
-        Optional<Guest> guestOpt = guestRepository.findByFamilyNameAndAnyPhoneNumber(lastName, mobile);
-
-        if (guestOpt.isEmpty()) {
-            // For backward compatibility, also check the old contact_phone field
-            // (in case there are guests without the new phoneNumbers relationship)
-            guestOpt = guestRepository.findByFamilyNameIgnoreCaseAndContactPhone(lastName, mobile);
-            if (guestOpt.isEmpty()) {
-                return "GUEST_NOT_FOUND";
-            }
+    public String validateGuestLogin(String contactLastName, String mobile) {
+        // Delegate to GuestAuthenticationService for normalization and lookup
+        GuestAuthenticationService.GuestLoginResult result = guestAuthService.validateGuestLoginByPhoneContact(contactLastName, mobile);
+        if (!result.isSuccess()) {
+            return "GUEST_NOT_FOUND";
         }
-
         return "SUCCESS";
     }
 
     /**
-     * Get guest for authentication using family name and any phone number
-     * Tries the new multi-phone system first, then falls back to old system
+     * Get guest for authentication using contact last name + any phone number
      */
-    public Optional<Guest> getGuestForAuthentication(String lastName, String mobile) {
-        // Try new multi-phone system first
-        Optional<Guest> guestOpt = guestRepository.findByFamilyNameAndAnyPhoneNumber(lastName, mobile);
-
-        // Fallback to old single-phone system for backward compatibility
-        if (guestOpt.isEmpty()) {
-            guestOpt = guestRepository.findByFamilyNameIgnoreCaseAndContactPhone(lastName, mobile);
+    public Optional<Guest> getGuestForAuthentication(String contactLastName, String mobile) {
+        GuestAuthenticationService.GuestLoginResult result = guestAuthService.validateGuestLoginByPhoneContact(contactLastName, mobile);
+        if (!result.isSuccess()) {
+            return Optional.empty();
         }
-
-        return guestOpt;
+        return Optional.ofNullable(result.getGuest());
     }
 
     public String validateHostLogin(String email, String password) {

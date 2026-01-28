@@ -38,9 +38,11 @@ public class GuestService {
                                 phone.getPhoneNumber(), guest.getEventId());
                         if (existingPhone.isPresent()) {
                             Guest existingGuest = existingPhone.get().getGuest();
+                            String contactName = (existingGuest.getContactFirstName() != null ? existingGuest.getContactFirstName() : "") +
+                                                 " " + (existingGuest.getContactLastName() != null ? existingGuest.getContactLastName() : "");
                             throw new RuntimeException(
                                 "Phone number " + phone.getPhoneNumber() + " is already registered for guest '" +
-                                existingGuest.getContactName() + "' in this wedding event."
+                                contactName.trim() + "' in this wedding event."
                             );
                         }
                         throw new RuntimeException(
@@ -85,9 +87,11 @@ public class GuestService {
                                 newContactPhone, eventId);
                         if (existingPhone.isPresent()) {
                             Guest existingGuest = existingPhone.get().getGuest();
+                            String contactName = (existingGuest.getContactFirstName() != null ? existingGuest.getContactFirstName() : "") +
+                                                 " " + (existingGuest.getContactLastName() != null ? existingGuest.getContactLastName() : "");
                             throw new RuntimeException(
                                 "Phone number " + newContactPhone + " is already registered for guest '" +
-                                existingGuest.getContactName() + "' in this wedding event."
+                                contactName.trim() + "' in this wedding event."
                             );
                         }
                         throw new RuntimeException(
@@ -98,13 +102,33 @@ public class GuestService {
             }
 
             guest.setFamilyName(guestDetails.getFamilyName());
-            guest.setContactName(guestDetails.getContactName());
+            guest.setContactFirstName(guestDetails.getContactFirstName());
+            guest.setContactLastName(guestDetails.getContactLastName());
             guest.setContactEmail(guestDetails.getContactEmail());
-            guest.setContactPhone(guestDetails.getContactPhone());
+            guest.setPrimaryPhoneNumber(guestDetails.getPrimaryPhoneNumber());
             guest.setSide(guestDetails.getSide());
-            guest.setAddress(guestDetails.getAddress());
+            guest.setAddressLine1(guestDetails.getAddressLine1());
+            guest.setAddressLine2(guestDetails.getAddressLine2());
+            guest.setCity(guestDetails.getCity());
+            guest.setCountry(guestDetails.getCountry());
+            guest.setPostalCode(guestDetails.getPostalCode());
             guest.setMaxAttendees(guestDetails.getMaxAttendees());
             guest.setEventId(guestDetails.getEventId());
+
+            // Update additional phone numbers
+            if (guestDetails.getPhoneNumbers() != null && !guestDetails.getPhoneNumbers().isEmpty()) {
+                // Clear existing and rebuild from form data
+                guest.getPhoneNumbers().clear();
+                for (GuestPhoneNumber phone : guestDetails.getPhoneNumbers()) {
+                    phone.setGuest(guest);
+                    phone.setEventId(guest.getEventId());
+                    guest.getPhoneNumbers().add(phone);
+                }
+            } else {
+                // Clear phone numbers if none provided
+                guest.getPhoneNumbers().clear();
+            }
+
             return guestRepository.save(guest);
         }
         throw new RuntimeException("Guest not found with id: " + id);
@@ -150,7 +174,8 @@ public class GuestService {
      * Validates that the phone number doesn't already exist for ANY guest in the same wedding event
      */
     @Transactional
-    public GuestPhoneNumber addPhoneNumber(Long guestId, String phoneNumber, GuestPhoneNumber.PhoneType phoneType) {
+    public GuestPhoneNumber addPhoneNumber(Long guestId, String phoneNumber, GuestPhoneNumber.PhoneType phoneType,
+                                           String contactFirstName, String contactLastName) {
         Optional<Guest> guestOpt = guestRepository.findById(guestId);
         if (guestOpt.isEmpty()) {
             throw new RuntimeException("Guest not found with id: " + guestId);
@@ -167,13 +192,14 @@ public class GuestService {
         Long eventId = guest.getEventId();
         if (eventId != null) {
             if (Boolean.TRUE.equals(guestPhoneNumberRepository.existsPhoneNumberInEvent(phoneNumber, eventId, guestId))) {
-                // Find which guest already has this number to provide helpful error message
                 Optional<GuestPhoneNumber> existingPhone = guestPhoneNumberRepository.findPhoneNumberInEvent(phoneNumber, eventId);
                 if (existingPhone.isPresent()) {
                     Guest existingGuest = existingPhone.get().getGuest();
+                    String contactName = (existingGuest.getContactFirstName() != null ? existingGuest.getContactFirstName() : "") +
+                                        " " + (existingGuest.getContactLastName() != null ? existingGuest.getContactLastName() : "");
                     throw new RuntimeException(
                         "Phone number " + phoneNumber + " is already registered for guest '" +
-                        existingGuest.getContactName() + "' in this wedding event. " +
+                        contactName.trim() + "' in this wedding event. " +
                         "Each guest must have a unique phone number."
                     );
                 }
@@ -184,18 +210,73 @@ public class GuestService {
             }
         }
 
-        // If this is the first phone number, make it primary
-        boolean isPrimary = guest.getPhoneNumbers().isEmpty();
-
+        // Build phone entry (no primary toggling; isPrimary kept for backward compatibility)
         GuestPhoneNumber newPhone = GuestPhoneNumber.builder()
                 .guest(guest)
+                .eventId(guest.getEventId())
                 .phoneNumber(phoneNumber)
                 .phoneType(phoneType != null ? phoneType : GuestPhoneNumber.PhoneType.PERSONAL)
-                .isPrimary(isPrimary)
+                .contactFirstName(contactFirstName)
+                .contactLastName(contactLastName)
                 .build();
 
         guest.getPhoneNumbers().add(newPhone);
         return guestPhoneNumberRepository.save(newPhone);
+    }
+
+    /**
+     * Update/edit a phone number for a guest
+     */
+    @Transactional
+    public GuestPhoneNumber updatePhoneNumber(Long guestId, Long phoneNumberId, String newPhoneNumber,
+                                              GuestPhoneNumber.PhoneType phoneType,
+                                              String contactFirstName, String contactLastName) {
+        Optional<Guest> guestOpt = guestRepository.findById(guestId);
+        if (guestOpt.isEmpty()) {
+            throw new RuntimeException("Guest not found with id: " + guestId);
+        }
+
+        Guest guest = guestOpt.get();
+        Optional<GuestPhoneNumber> phoneOpt = guestPhoneNumberRepository.findById(phoneNumberId);
+
+        if (phoneOpt.isEmpty()) {
+            throw new RuntimeException("Phone number not found with id: " + phoneNumberId);
+        }
+
+        GuestPhoneNumber phone = phoneOpt.get();
+
+        // If phone number is being changed, validate it doesn't exist for another guest
+        if (!phone.getPhoneNumber().equals(newPhoneNumber)) {
+            // Check if new number already exists for this guest
+            if (Boolean.TRUE.equals(guestPhoneNumberRepository.existsByGuestIdAndPhoneNumber(guestId, newPhoneNumber))) {
+                throw new RuntimeException("This phone number already exists for this guest");
+            }
+
+            // Check if new number exists for ANY other guest in the same event
+            Long eventId = guest.getEventId();
+            if (eventId != null) {
+                if (Boolean.TRUE.equals(guestPhoneNumberRepository.existsPhoneNumberInEvent(newPhoneNumber, eventId, guestId))) {
+                    Optional<GuestPhoneNumber> existingPhone = guestPhoneNumberRepository.findPhoneNumberInEvent(newPhoneNumber, eventId);
+                    if (existingPhone.isPresent()) {
+                        Guest existingGuest = existingPhone.get().getGuest();
+                        String contactName = (existingGuest.getContactFirstName() != null ? existingGuest.getContactFirstName() : "") +
+                                            " " + (existingGuest.getContactLastName() != null ? existingGuest.getContactLastName() : "");
+                        throw new RuntimeException(
+                            "Phone number " + newPhoneNumber + " is already registered for guest '" +
+                            contactName.trim() + "' in this wedding event."
+                        );
+                    }
+                }
+            }
+        }
+
+        // Update phone details
+        phone.setPhoneNumber(newPhoneNumber);
+        phone.setPhoneType(phoneType != null ? phoneType : GuestPhoneNumber.PhoneType.PERSONAL);
+        phone.setContactFirstName(contactFirstName);
+        phone.setContactLastName(contactLastName);
+
+        return guestPhoneNumberRepository.save(phone);
     }
 
     /**

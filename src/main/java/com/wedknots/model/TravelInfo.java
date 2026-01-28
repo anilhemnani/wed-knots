@@ -1,10 +1,7 @@
 package com.wedknots.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.extern.jackson.Jacksonized;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -24,6 +21,7 @@ public class TravelInfo {
 
     @OneToOne
     @JoinColumn(name = "guest_id", unique = true)
+    @ToString.Exclude
     private Guest guest;
 
     @Column(name = "arrival_mode")

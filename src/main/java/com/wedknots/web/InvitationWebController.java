@@ -8,7 +8,6 @@ import com.wedknots.repository.GuestRepository;
 import com.wedknots.repository.WeddingEventRepository;
 import com.wedknots.service.InvitationLogService;
 import com.wedknots.service.InvitationService;
-import com.wedknots.service.WhatsAppService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +38,7 @@ public class InvitationWebController {
     private InvitationLogService invitationLogService;
 
     @Autowired
-    private WhatsAppService whatsAppService;
+    private com.wedknots.service.DeliveryOptionsService deliveryOptionsService;
 
     @Autowired
     private WeddingEventRepository weddingEventRepository;
@@ -73,19 +72,12 @@ public class InvitationWebController {
 
         WeddingEvent event = eventOpt.get();
         Invitation newInvitation = new Invitation();
-        newInvitation.setMessageType("TEMPLATE");
+        newInvitation.setMessageType("PLAIN_TEXT");
         newInvitation.setTemplateLanguage("en_US");
 
         model.addAttribute("event", event);
         model.addAttribute("invitation", newInvitation);
-
-        // Fetch available WhatsApp templates from Meta API if event has credentials configured
-        var availableTemplates = whatsAppService.fetchAvailableTemplates(event);
-        logger.info("Adding {} templates to model for event {}", availableTemplates.size(), eventId);
-        if (!availableTemplates.isEmpty()) {
-            logger.debug("First template: {}", availableTemplates.get(0));
-        }
-        model.addAttribute("availableTemplates", availableTemplates);
+        model.addAttribute("deliveryOptions", deliveryOptionsService.getEnabledDeliveryOptions());
 
         return "invitation_form";
     }
@@ -132,14 +124,7 @@ public class InvitationWebController {
         WeddingEvent event = eventOpt.get();
         model.addAttribute("event", event);
         model.addAttribute("invitation", invitationOpt.get());
-
-        // Fetch available WhatsApp templates from Meta API if event has credentials configured
-        var availableTemplates = whatsAppService.fetchAvailableTemplates(event);
-        logger.info("Adding {} templates to model for event {} (edit mode)", availableTemplates.size(), eventId);
-        if (!availableTemplates.isEmpty()) {
-            logger.debug("First template: {}", availableTemplates.get(0));
-        }
-        model.addAttribute("availableTemplates", availableTemplates);
+        model.addAttribute("deliveryOptions", deliveryOptionsService.getEnabledDeliveryOptions());
 
         return "invitation_form";
     }
@@ -189,7 +174,7 @@ public class InvitationWebController {
     public String showSendInvitation(@PathVariable Long eventId,
                                       @PathVariable Long invitationId,
                                       @RequestParam(required = false) String side,
-                                      @RequestParam(required = false, defaultValue = "whatsapp") String method,
+                                      @RequestParam(required = false, defaultValue = "email") String method,
                                       Model model) {
         Optional<WeddingEvent> eventOpt = weddingEventRepository.findById(eventId);
         Optional<Invitation> invitationOpt = invitationService.getInvitationById(invitationId);
@@ -201,17 +186,12 @@ public class InvitationWebController {
         WeddingEvent event = eventOpt.get();
         Invitation invitation = invitationOpt.get();
 
-        // Get all guests for the event
-        List<Guest> allGuests = guestRepository.findAll().stream()
-                .filter(g -> g.getEventId().equals(eventId))
-                .collect(Collectors.toList());
-
-        // Filter by side if specified
-        List<Guest> guests = allGuests;
-        if (side != null && !side.isEmpty() && !side.equals("ALL")) {
-            guests = allGuests.stream()
-                    .filter(g -> g.getSide().equalsIgnoreCase(side))
-                    .collect(Collectors.toList());
+        // Get guests for the event via repository (avoids filtering all guests)
+        List<Guest> guests;
+        if (side != null && !side.isEmpty() && !side.equalsIgnoreCase("ALL")) {
+            guests = guestRepository.findByEventIdAndSideIgnoreCase(eventId, side);
+        } else {
+            guests = guestRepository.findByEventId(eventId);
         }
 
         // Get invitation logs to mark already sent
@@ -235,7 +215,7 @@ public class InvitationWebController {
     public String sendInvitation(@PathVariable Long eventId,
                                   @PathVariable Long invitationId,
                                   @RequestParam List<Long> guestIds,
-                                  @RequestParam(required = false, defaultValue = "whatsapp") String method,
+                                  @RequestParam(required = false, defaultValue = "email") String method,
                                   @RequestParam(required = false) String externalMethod,
                                   RedirectAttributes redirectAttributes) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -244,8 +224,8 @@ public class InvitationWebController {
         try {
             List<InvitationLog> logs;
 
-            if ("external".equals(method)) {
-                // Mark invitations as sent externally
+            if ("external".equalsIgnoreCase(method)) {
+                // Mark invitations as sent externally (no message actually queued)
                 if (externalMethod == null || externalMethod.isBlank()) {
                     redirectAttributes.addFlashAttribute("errorMessage",
                             "External invitation method is required");
@@ -258,14 +238,10 @@ public class InvitationWebController {
                 redirectAttributes.addFlashAttribute("successMessage",
                         String.format("Marked %d invitation(s) as sent via %s", logs.size(), externalMethod));
             } else {
-                // Send via WhatsApp (existing behavior)
-                logs = invitationLogService.sendInvitationToGuests(invitationId, guestIds, username);
-
-                long successCount = logs.stream().filter(log -> log.getDeliveryStatus().equals("SENT")).count();
-                long failedCount = logs.stream().filter(log -> log.getDeliveryStatus().equals("FAILED")).count();
-
+                // Queue for async delivery via selected method (email, sms, etc.)
+                logs = invitationLogService.queueInvitationsForDelivery(invitationId, guestIds, username, method);
                 redirectAttributes.addFlashAttribute("successMessage",
-                        String.format("Invitation sent to %d guest(s). Failed: %d", successCount, failedCount));
+                        String.format("Queued %d invitation(s) for delivery via %s", logs.size(), method));
             }
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Failed to send invitations: " + e.getMessage());

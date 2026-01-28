@@ -4,6 +4,12 @@
     <title>Host Login</title>
     <meta charset="UTF-8">
     <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
+    <script>
+      // Clear JSESSIONID cookie on login page load to avoid stale session issues
+      document.addEventListener('DOMContentLoaded', function() {
+        document.cookie = 'JSESSIONID=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      });
+    </script>
 </head>
 <body class="bg-light">
 <div class="container py-5">

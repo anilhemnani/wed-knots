@@ -191,10 +191,6 @@
 
                 <!-- Metadata -->
                 <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.1);">
-                    <div class="info-row">
-                        <span class="info-label">Message ID:</span>
-                        <span class="info-value font-monospace" th:text="${message.whatsappMessageId}"></span>
-                    </div>
                     <div class="info-row" th:if="${message.read}">
                         <span class="info-label">Read At:</span>
                         <span class="info-value" th:text="${#dates.format(message.readAt, 'MMM dd, yyyy HH:mm:ss')}"></span>
@@ -210,7 +206,7 @@
         <!-- Reply Form -->
         <div class="message-detail-card">
             <h5 class="mb-4">
-                <i class="bi bi-reply"></i> Reply to <strong th:text="${guest.contactName}"></strong>
+                <i class="bi bi-reply"></i> Reply to <strong th:text="${guest.contactFirstName} + ' ' + ${guest.contactLastName}"></strong>
             </h5>
             <form id="replyForm" class="reply-form">
                 <div class="form-group mb-3">

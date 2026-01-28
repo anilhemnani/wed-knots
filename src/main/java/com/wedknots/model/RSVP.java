@@ -1,9 +1,6 @@
 package com.wedknots.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import jakarta.persistence.*;
 import java.util.ArrayList;
@@ -22,6 +19,7 @@ public class RSVP {
 
     @OneToOne
     @JoinColumn(name = "guest_id", unique = true)
+    @ToString.Exclude
     private Guest guest;
 
     @Column(name = "event_id")
@@ -35,7 +33,11 @@ public class RSVP {
     @Column(name = "attendee_count")
     private int attendeeCount;
 
-    @OneToMany(mappedBy = "rsvp", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rsvp", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @Builder.Default
+    @ToString.Exclude
     private List<Attendee> attendees = new ArrayList<>();
+
+    @Version
+    private Long version;
 }

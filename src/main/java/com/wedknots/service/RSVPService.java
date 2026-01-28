@@ -51,12 +51,12 @@ public class RSVPService {
 
     @Transactional
     public RSVP acceptRSVP(Long rsvpId, int attendeeCount) {
-        return updateRSVPStatus(rsvpId, RSVPStatus.ACCEPTED, attendeeCount);
+        return updateRSVPStatus(rsvpId, RSVPStatus.ATTENDING, attendeeCount);
     }
 
     @Transactional
     public RSVP declineRSVP(Long rsvpId) {
-        return updateRSVPStatus(rsvpId, RSVPStatus.DECLINED, 0);
+        return updateRSVPStatus(rsvpId, RSVPStatus.NOT_ATTENDING, 0);
     }
 
     @Transactional

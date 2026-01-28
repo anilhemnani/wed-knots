@@ -1,11 +1,9 @@
 package com.wedknots.web;
 
-import com.wedknots.model.Guest;
-import com.wedknots.model.WeddingEvent;
-import com.wedknots.repository.GuestRepository;
-import com.wedknots.repository.WeddingEventRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.wedknots.model.GuestMessage;
+import com.wedknots.model.InvitationLog;
+import com.wedknots.repository.InvitationLogRepository;
+import com.wedknots.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -17,72 +15,53 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-/**
- * Web controller for guest messaging functionality
- */
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+
 @Controller
 @RequestMapping("/guest/messages")
 public class GuestMessagesController {
-    private static final Logger logger = LoggerFactory.getLogger(GuestMessagesController.class);
 
     @Autowired
-    private GuestRepository guestRepository;
+    private MessageService messageService;
 
     @Autowired
-    private WeddingEventRepository weddingEventRepository;
+    private InvitationLogRepository invitationLogRepository;
 
-    /**
-     * Display messages for a specific event
-     * GET /guest/messages/event/{eventId}
-     */
-    @GetMapping("/event/{eventId}")
     @PreAuthorize("hasRole('GUEST')")
-    public String viewEventMessages(@PathVariable Long eventId,
-                                    @RequestParam(name = "guestId", required = false) Long guestId,
-                                    Model model) {
-        try {
-            Guest guest = null;
-
-            // 1) Prefer explicit guestId when provided
-            if (guestId != null) {
-                guest = guestRepository.findById(guestId).orElse(null);
-            }
-
-            // 2) Fallback to authenticated principal: try phone first, then email
-            if (guest == null) {
-                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-                String principal = auth != null ? auth.getName() : null;
-                if (principal != null) {
-                    guest = guestRepository.findByContactPhone(principal);
-                    if (guest == null) {
-                        guest = guestRepository.findByContactEmail(principal);
-                    }
-                }
-            }
-
-            if (guest == null) {
-                return "redirect:/guest/dashboard?error=Guest not found";
-            }
-
-            // Verify guest is invited to this event
-            if (guest.getEventId() == null || !guest.getEventId().equals(eventId)) {
-                logger.warn("Guest {} attempted to access messages for event {} they are not invited to",
-                    guest.getId(), eventId);
-                return "redirect:/guest/dashboard?error=You are not invited to this event";
-            }
-
-            WeddingEvent event = weddingEventRepository.findById(eventId)
-                .orElseThrow(() -> new RuntimeException("Event not found"));
-
-            model.addAttribute("event", event);
-            model.addAttribute("guest", guest);
-
-            logger.info("Guest {} viewing messages for event {}", guest.getId(), eventId);
-            return "guest/messages";
-
-        } catch (Exception e) {
-            logger.error("Error loading messages page", e);
-            return "redirect:/guest/dashboard?error=Error loading messages";
+    @GetMapping("/event/{eventId}")
+    public String guestMessages(@PathVariable Long eventId,
+                                @RequestParam(required = false) Long guestId,
+                                HttpServletRequest request,
+                                Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            return "redirect:/login";
         }
+
+        Object guestIdAttr = request.getSession().getAttribute("guestId");
+        Long resolvedGuestId = guestIdAttr instanceof Integer ? ((Integer) guestIdAttr).longValue() : (Long) guestIdAttr;
+        if (resolvedGuestId == null) {
+            return "redirect:/login";
+        }
+        if (guestId != null && !guestId.equals(resolvedGuestId)) {
+            return "redirect:/guest/dashboard";
+        }
+
+        // Ensure guest has an invitation for this event
+        List<InvitationLog> logs = invitationLogRepository.findByGuestIdAndEventId(resolvedGuestId, eventId);
+        if (logs.isEmpty()) {
+            model.addAttribute("error", "No invitations for this event");
+            return "guest_messages";
+        }
+
+        // Fetch messages (ordered newest first from service)
+        List<GuestMessage> messages = messageService.getGuestMessages(eventId, resolvedGuestId, org.springframework.data.domain.PageRequest.of(0, 100)).getContent();
+
+        model.addAttribute("messages", messages);
+        model.addAttribute("event", logs.get(0).getInvitation().getEvent());
+        model.addAttribute("guest", logs.get(0).getGuest());
+        return "guest_messages";
     }
 }
+

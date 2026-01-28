@@ -1,6 +1,12 @@
 package com.wedknots.web;
 
+import com.wedknots.dto.AttendeeInfo;
+import com.wedknots.dto.GuestValidationResponse;
+import com.wedknots.dto.PhoneValidationRequest;
+import com.wedknots.dto.RsvpSubmissionRequest;
 import com.wedknots.model.Guest;
+import com.wedknots.model.RSVP;
+import com.wedknots.model.RSVPStatus;
 import com.wedknots.model.WeddingEvent;
 import com.wedknots.repository.GuestRepository;
 import com.wedknots.repository.WeddingEventRepository;
@@ -10,7 +16,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Controller for guest RSVP submission via mobile web
@@ -24,6 +33,85 @@ public class GuestRSVPController {
 
     private final WeddingEventRepository weddingEventRepository;
     private final GuestRepository guestRepository;
+
+    /**
+     * Get current authenticated guest data with RSVP details
+     * GET /api/guests/current
+     */
+    @GetMapping("/api/guests/current")
+    @ResponseBody
+    public Map<String, Object> getCurrentGuest(java.security.Principal principal) {
+        try {
+            if (principal == null) {
+                log.warn("No principal found - user not authenticated");
+                return Map.of("error", "Not authenticated");
+            }
+
+            log.info("Principal name: {}", principal.getName());
+
+            // Extract phone number from principal (format: "LastName+PhoneNumber")
+            String phoneNumber = principal.getName();
+
+            // Find guest by phone number
+            Optional<Guest> guestOpt = guestRepository.findByPrimaryPhoneNumber(phoneNumber);
+            log.info("Primary phone lookup result: {}", guestOpt.isPresent() ? "Found guest " + guestOpt.get().getId() : "No guest found");
+
+            if (guestOpt.isEmpty()) {
+                log.info("No guest found by primary phone, trying additional phones");
+                // Try additional phone numbers
+                guestOpt = guestRepository.findByAdditionalPhoneNumber(phoneNumber);
+                log.info("Additional phone lookup result: {}", guestOpt.isPresent() ? "Found guest " + guestOpt.get().getId() : "No guest found");
+            }
+
+            if (guestOpt.isEmpty()) {
+                log.warn("No guest found with phone number: {}", phoneNumber);
+                return Map.of("error", "Guest not found");
+            }
+
+            Guest guest = guestOpt.get();
+            log.info("Found guest: {} (ID: {})", guest.getContactFirstName(), guest.getId());
+
+            // Build response with guest and RSVP data
+            Map<String, Object> response = new java.util.HashMap<>();
+            response.put("id", guest.getId());
+            response.put("contactFirstName", guest.getContactFirstName());
+            response.put("contactLastName", guest.getContactLastName());
+            response.put("maxAttendees", guest.getMaxAttendees());
+
+            log.info("Response will include guest ID: {}", guest.getId());
+
+            // Include RSVP data if exists
+            if (guest.getRsvp() != null) {
+                Map<String, Object> rsvpData = new java.util.HashMap<>();
+                rsvpData.put("attendeeCount", guest.getRsvp().getAttendeeCount());
+
+                // Include attendees
+                if (guest.getRsvp().getAttendees() != null && !guest.getRsvp().getAttendees().isEmpty()) {
+                    List<Map<String, Object>> attendees = guest.getRsvp().getAttendees().stream()
+                            .map(attendee -> Map.of(
+                                    "name", (Object) attendee.getName(),
+                                    "mobileNumber", (Object) (attendee.getMobileNumber() != null ? attendee.getMobileNumber() : ""),
+                                    "ageGroup", (Object) (attendee.getAgeGroup() != null ? attendee.getAgeGroup() : "Adult")
+                            ))
+                            .collect(Collectors.toList());
+                    rsvpData.put("attendees", attendees);
+                }
+
+                response.put("rsvp", rsvpData);
+                // Map RSVP status string for client prefill (attending/not_attending/maybe/pending)
+                response.put("rsvpStatus", guest.getRsvp().getStatus());
+            } else {
+                response.put("rsvpStatus", RSVPStatus.PENDING.name());
+            }
+
+            log.info("Returning guest data for ID: {}", guest.getId());
+            return response;
+
+        } catch (Exception e) {
+            log.error("Error fetching current guest", e);
+            return Map.of("error", "Failed to fetch guest data");
+        }
+    }
 
     /**
      * Display mobile RSVP page with phone number entry form
@@ -89,13 +177,16 @@ public class GuestRSVPController {
             }
 
             Guest guest = guestOpt.get();
-            log.info("Guest validated: {} (ID: {}) for event {}", guest.getContactName(), guest.getId(), eventId);
+            String guestName = (guest.getContactFirstName() != null ? guest.getContactFirstName() : "") +
+                    " " + (guest.getContactLastName() != null ? guest.getContactLastName() : "");
+            log.info("Guest validated: {} (ID: {}) for event {}", guestName.trim(), guest.getId(), eventId);
 
             return GuestValidationResponse.success(
                     guest.getId(),
-                    guest.getContactName(),
+                    guestName.trim(),
                     guest.getFamilyName(),
-                    eventId
+                    eventId,
+                    guest.getMaxAttendees()
             );
 
         } catch (Exception e) {
@@ -107,24 +198,23 @@ public class GuestRSVPController {
     /**
      * Submit RSVP details
      * POST /rsvp/event/{eventId}/submit
-     * Request: { "guestId": 1, "rsvpStatus": "attending", "attendeeCount": 2, ... }
+     * Request: { "guestId": 1, "rsvpStatus": "attending", "attendees": [...], "attendeeCount": 2 }
+     * Response: { "success": true, "message": "RSVP submitted successfully" }
      */
     @PostMapping("/event/{eventId}/submit")
-    public String submitRsvp(
+    @ResponseBody
+    public Map<String, Object> submitRsvp(
             @PathVariable Long eventId,
-            @ModelAttribute RsvpSubmissionRequest request,
-            Model model) {
+            @RequestBody RsvpSubmissionRequest request) {
 
         try {
             // Validate
             if (request.getGuestId() == null || request.getGuestId() <= 0) {
-                model.addAttribute("error", "Invalid guest ID");
-                return "rsvp/error";
+                return Map.of("success", false, "error", "Invalid guest ID");
             }
 
             if (request.getRsvpStatus() == null || request.getRsvpStatus().isEmpty()) {
-                model.addAttribute("error", "RSVP status is required");
-                return "rsvp/error";
+                return Map.of("success", false, "error", "RSVP status is required");
             }
 
             // Fetch guest and event
@@ -132,8 +222,7 @@ public class GuestRSVPController {
             Optional<WeddingEvent> eventOpt = weddingEventRepository.findById(eventId);
 
             if (guestOpt.isEmpty() || eventOpt.isEmpty()) {
-                model.addAttribute("error", "Guest or event not found");
-                return "rsvp/error";
+                return Map.of("success", false, "error", "Guest or event not found");
             }
 
             Guest guest = guestOpt.get();
@@ -142,97 +231,59 @@ public class GuestRSVPController {
             // Verify guest belongs to this event
             if (!guest.getEvent().getId().equals(eventId)) {
                 log.warn("Guest {} does not belong to event {}", request.getGuestId(), eventId);
-                model.addAttribute("error", "Guest does not belong to this event");
-                return "rsvp/error";
+                return Map.of("success", false, "error", "Guest does not belong to this event");
             }
 
             // Update RSVP details
             updateGuestRsvpDetails(guest, request);
             guestRepository.save(guest);
 
+            String guestName = (guest.getContactFirstName() != null ? guest.getContactFirstName() : "") +
+                    " " + (guest.getContactLastName() != null ? guest.getContactLastName() : "");
             log.info("✅ RSVP submitted successfully for guest {} (ID: {}) - Status: {}",
-                    guest.getContactName(), guest.getId(), request.getRsvpStatus());
+                    guestName.trim(), guest.getId(), request.getRsvpStatus());
 
-            // Prepare success response
-            model.addAttribute("guestName", guest.getContactName());
-            model.addAttribute("eventName", event.getName());
-            model.addAttribute("rsvpStatus", request.getRsvpStatus());
-
-            return "rsvp/success";
+            return Map.of("success", true, "message", "RSVP submitted successfully", "redirect", "/guest/dashboard");
 
         } catch (Exception e) {
             log.error("Error submitting RSVP for guest {} in event {}", request.getGuestId(), eventId, e);
-            model.addAttribute("error", "An error occurred while submitting your RSVP. Please try again.");
-            return "rsvp/error";
+            return Map.of("success", false, "error", "An error occurred while submitting your RSVP. Please try again.");
         }
     }
 
+    /**
     /**
      * Update guest RSVP details from the request
      */
     private void updateGuestRsvpDetails(Guest guest, RsvpSubmissionRequest request) {
-        // Update max attendees if provided
-        if (request.getAttendeeCount() != null && request.getAttendeeCount() > 0) {
-            guest.setMaxAttendees(request.getAttendeeCount());
-        }
-
         // Update expected attendance
-        if (request.getRsvpStatus() != null) {
-            try {
-                guest.setExpectedAttendance(
-                        com.wedknots.model.ExpectedAttendance.valueOf(request.getRsvpStatus().toUpperCase())
-                );
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid RSVP status: {}", request.getRsvpStatus());
+        com.wedknots.model.RSVP rsvp = guest.getRsvp();
+        if (rsvp == null) {
+            rsvp = new RSVP();
+            rsvp.setGuest(guest);
+            rsvp.setEventId(guest.getEventId());
+            guest.setRsvp(rsvp);
+        }
+        rsvp.setStatus(RSVPStatus.fromString(request.getRsvpStatus()));
+
+        rsvp.getAttendees().clear();
+        // Create attendees from JSON payload (new format)
+        if (request.getAttendees() != null && !request.getAttendees().isEmpty()) {
+            // Get or create RSVP
+            rsvp.setAttendeeCount(request.getAttendees().size());
+            for (AttendeeInfo attendeeInfo : request.getAttendees()) {
+                if (attendeeInfo.getName() != null && !attendeeInfo.getName().trim().isEmpty()) {
+                    com.wedknots.model.Attendee attendee = com.wedknots.model.Attendee.builder()
+                            .name(attendeeInfo.getName().trim())
+                            .mobileNumber(attendeeInfo.getMobileNumber())
+                            .ageGroup(attendeeInfo.getAgeGroup() != null ? attendeeInfo.getAgeGroup() : "Adult")
+                            .rsvp(rsvp)
+                            .build();
+                    rsvp.getAttendees().add(attendee);
+                }
             }
         }
-
         // Additional fields can be added here as needed
         guest.setUpdatedAt(java.time.LocalDateTime.now());
     }
-
-    /**
-     * Request DTO for phone validation
-     */
-    @lombok.Data
-    public static class PhoneValidationRequest {
-        private String phoneNumber;
-    }
-
-    /**
-     * Response DTO for phone validation
-     */
-    @lombok.Data
-    @lombok.AllArgsConstructor
-    public static class GuestValidationResponse {
-        private boolean success;
-        private String message;
-        private Long guestId;
-        private String guestName;
-        private String familyName;
-        private Long eventId;
-
-        public static GuestValidationResponse success(Long guestId, String guestName, String familyName, Long eventId) {
-            return new GuestValidationResponse(true, null, guestId, guestName, familyName, eventId);
-        }
-
-        public static GuestValidationResponse error(String message) {
-            return new GuestValidationResponse(false, message, null, null, null, null);
-        }
-    }
-
-    /**
-     * Request DTO for RSVP submission
-     */
-    @lombok.Data
-    public static class RsvpSubmissionRequest {
-        private Long guestId;
-        private String rsvpStatus; // "attending" or "not_attending"
-        private Integer attendeeCount;
-        private String travelMode;
-        private String travelDetails;
-        private String dietaryRestrictions;
-        private String specialRequests;
-    }
 }
-

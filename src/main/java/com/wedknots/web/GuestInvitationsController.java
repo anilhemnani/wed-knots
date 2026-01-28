@@ -16,6 +16,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -52,21 +53,37 @@ public class GuestInvitationsController {
      */
     @PreAuthorize("hasRole('GUEST')")
     @GetMapping
-    public String listInvitations(Model model) {
+    public String listInvitations(@RequestParam(name = "eventId", required = false) Long eventId,
+                                  Model model, HttpServletRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName() == null) {
             return "redirect:/login";
         }
 
-        String principal = auth.getName();
-        String guestPhoneNumber = extractPhoneNumber(principal);
+        // Resolve authenticated guest (via session or principal)
+        Guest guest = getAuthenticatedGuest(request);
+        if (guest == null) {
+            model.addAttribute("emptyState", true);
+            return "guest_invitations";
+        }
 
-        List<Invitation> guestInvitations = invitationLogRepository
-                .findByGuestPhoneNumber(guestPhoneNumber)
-                .stream()
-                .map(log -> log.getInvitation())
-                .distinct()
-                .toList();
+        List<Invitation> guestInvitations;
+        if (eventId != null) {
+            guestInvitations = invitationLogRepository
+                    .findByGuestId(guest.getId())
+                    .stream()
+                    .filter(log -> log.getInvitation().getEvent().getId().equals(eventId))
+                    .map(InvitationLog::getInvitation)
+                    .distinct()
+                    .toList();
+        } else {
+            guestInvitations = invitationLogRepository
+                    .findByGuestId(guest.getId())
+                    .stream()
+                    .map(InvitationLog::getInvitation)
+                    .distinct()
+                    .toList();
+        }
 
         if (guestInvitations.size() == 1) {
             return "redirect:/invitations/" + guestInvitations.getFirst().getId();
@@ -78,6 +95,7 @@ public class GuestInvitationsController {
         }
 
         model.addAttribute("invitations", guestInvitations);
+        model.addAttribute("currentEventId", eventId);
         return "guest_invitations";
     }
 
@@ -86,33 +104,25 @@ public class GuestInvitationsController {
      */
     @PreAuthorize("hasRole('GUEST')")
     @GetMapping("/{invitationId}")
-    public String viewInvitation(@PathVariable Long invitationId, Model model) {
+    public String viewInvitation(@PathVariable Long invitationId, Model model, HttpServletRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName() == null) {
             return "redirect:/login";
         }
 
-        String principal = auth.getName();
-        String[] parts = extractFamilyNameAndPhone(principal);
-        String familyName = parts[0];
-        String guestPhoneNumber = parts[1];
+        Guest guest = getAuthenticatedGuest(request);
+        if (guest == null) {
+            throw new RuntimeException("Guest not found");
+        }
 
         var invitationLog = invitationLogRepository
-                .findByInvitationIdAndGuestPhoneNumber(invitationId, guestPhoneNumber)
+                .findByInvitationIdAndGuestId(invitationId, guest.getId())
                 .orElseThrow(() -> new RuntimeException("Invitation not found"));
 
         Invitation invitation = invitationLog.getInvitation();
-        // Populate WhatsApp message for template rendering (fallback to invitation message)
-        invitation.setWhatsAppMessage(invitation.getMessage());
 
-        Optional<Guest> guestOpt = guestRepository.findByFamilyNameIgnoreCaseAndContactPhone(familyName, guestPhoneNumber);
-        if (guestOpt.isEmpty()) {
-            throw new RuntimeException("Guest not found");
-        }
-        
-        Guest guest = guestOpt.get();
         Optional<RSVP> rsvpOpt = rsvpRepository.findByGuestId(guest.getId());
-        
+
         model.addAttribute("invitation", invitation);
         model.addAttribute("event", invitation.getEvent());
         model.addAttribute("invitationLog", invitationLog);
@@ -127,31 +137,15 @@ public class GuestInvitationsController {
      */
     @PreAuthorize("hasRole('GUEST')")
     @GetMapping("/rsvp/form")
-    public String rsvpForm(@RequestParam Long guestId, @RequestParam Long eventId, Model model) {
+    public String rsvpForm(@RequestParam Long guestId, @RequestParam Long eventId, Model model, HttpServletRequest request) {
         Guest guest = guestRepository.findById(guestId)
                 .orElseThrow(() -> new RuntimeException("Guest not found"));
 
         // Verify the guest belongs to the authenticated user
-        verifyGuestAccess(guest);
+        verifyGuestAccess(guest, request);
 
-        WeddingEvent event = weddingEventRepository.findById(eventId)
-                .orElseThrow(() -> new RuntimeException("Event not found"));
-
-        Optional<RSVP> rsvpOpt = rsvpRepository.findByGuestId(guest.getId());
-        
-        RSVP rsvp = rsvpOpt.orElseGet(() -> RSVP.builder()
-                .guest(guest)
-                .eventId(eventId)
-                .status(RSVPStatus.PENDING)
-                .attendeeCount(1)
-                .build());
-        
-        model.addAttribute("guest", guest);
-        model.addAttribute("event", event);
-        model.addAttribute("rsvp", rsvp);
-        model.addAttribute("eventId", eventId);
-
-        return "guest_rsvp_attendees_form_new";
+        // Use mobile RSVP flow (guest will validate via phone)
+        return "redirect:/rsvp/event/" + eventId;
     }
 
     /**
@@ -164,14 +158,15 @@ public class GuestInvitationsController {
             @RequestParam Long eventId,
             @RequestParam RSVPStatus status,
             @RequestParam(required = false) Integer attendeeCount,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes,
+            HttpServletRequest request) {
 
         try {
             Guest guest = guestRepository.findById(guestId)
                     .orElseThrow(() -> new RuntimeException("Guest not found"));
 
             // Verify the guest belongs to the authenticated user
-            verifyGuestAccess(guest);
+            verifyGuestAccess(guest, request);
 
             WeddingEvent event = weddingEventRepository.findById(eventId)
                     .orElseThrow(() -> new RuntimeException("Event not found"));
@@ -186,7 +181,7 @@ public class GuestInvitationsController {
             rsvp.setStatus(status);
 
             // If ACCEPTED, attendee count is required
-            if (status == RSVPStatus.ACCEPTED) {
+            if (status == RSVPStatus.ATTENDING) {
                 if (attendeeCount == null || attendeeCount < 1) {
                     throw new RuntimeException("Number of attendees is required when accepting the invitation");
                 }
@@ -224,14 +219,15 @@ public class GuestInvitationsController {
             @RequestParam int attendeeCount,
             @RequestParam(required = false) List<String> attendeeNames,
             @RequestParam(required = false) List<String> attendeeAges,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes,
+            HttpServletRequest request) {
 
         try {
             Guest guest = guestRepository.findById(guestId)
                     .orElseThrow(() -> new RuntimeException("Guest not found"));
 
             // Verify the guest belongs to the authenticated user
-            verifyGuestAccess(guest);
+            verifyGuestAccess(guest, request);
 
             WeddingEvent event = weddingEventRepository.findById(eventId)
                     .orElseThrow(() -> new RuntimeException("Event not found"));
@@ -296,9 +292,10 @@ public class GuestInvitationsController {
     public String updateRSVP(
             @RequestParam RSVPStatus status,
             @RequestParam int attendeeCount,
-            RedirectAttributes redirectAttributes) {
-        
-        Guest guest = getAuthenticatedGuest();
+            RedirectAttributes redirectAttributes,
+            HttpServletRequest request) {
+
+        Guest guest = getAuthenticatedGuest(request);
         Optional<RSVP> rsvpOpt = rsvpRepository.findByGuestId(guest.getId());
         
         RSVP rsvp = rsvpOpt.orElseGet(() -> RSVP.builder()
@@ -315,94 +312,18 @@ public class GuestInvitationsController {
         return "redirect:/invitations";
     }
 
-    /**
-     * Attendees management for guest
-     */
-    @PreAuthorize("hasRole('GUEST')")
-    @GetMapping("/attendees")
-    public String attendeesList(Model model) {
-        Guest guest = getAuthenticatedGuest();
-        Optional<RSVP> rsvpOpt = rsvpRepository.findByGuestId(guest.getId());
-        
-        if (rsvpOpt.isEmpty()) {
-            return "redirect:/invitations/rsvp/form";
-        }
-        
-        RSVP rsvp = rsvpOpt.get();
-        model.addAttribute("guest", guest);
-        model.addAttribute("rsvp", rsvp);
-        model.addAttribute("attendees", rsvp.getAttendees());
-        return "guest_attendees_form";
-    }
-
-    /**
-     * Create or update an attendee for the authenticated guest's RSVP
-     */
-    @PreAuthorize("hasRole('GUEST')")
-    @PostMapping("/attendees")
-    public String saveAttendee(@RequestParam(required = false) Long attendeeId,
-                               @RequestParam String name,
-                               @RequestParam String ageGroup,
-                               @RequestParam(required = false) String mobileNumber,
-                               RedirectAttributes redirectAttributes) {
-
-        Guest guest = getAuthenticatedGuest();
-        RSVP rsvp = rsvpRepository.findByGuestId(guest.getId())
-                .orElseThrow(() -> new RuntimeException("RSVP not found for guest"));
-
-        Attendee attendee;
-        if (attendeeId != null) {
-            attendee = attendeeRepository.findById(attendeeId)
-                    .orElseThrow(() -> new RuntimeException("Attendee not found"));
-            if (!attendee.getRsvp().getGuest().getId().equals(guest.getId())) {
-                throw new RuntimeException("Access denied: cannot modify another guest's attendee");
-            }
-            attendee.setName(name);
-            attendee.setAgeGroup(ageGroup);
-            attendee.setMobileNumber(mobileNumber);
-        } else {
-            attendee = new Attendee();
-            attendee.setRsvp(rsvp);
-            attendee.setName(name);
-            attendee.setAgeGroup(ageGroup);
-            attendee.setMobileNumber(mobileNumber);
-        }
-
-        attendeeRepository.save(attendee);
-        redirectAttributes.addFlashAttribute("successMessage", "Attendee saved successfully");
-        return "redirect:/invitations/attendees";
-    }
-
-    /**
-     * Delete an attendee for the authenticated guest's RSVP
-     */
-    @PreAuthorize("hasRole('GUEST')")
-    @PostMapping("/attendees/{attendeeId}/delete")
-    public String deleteAttendee(@PathVariable Long attendeeId, RedirectAttributes redirectAttributes) {
-        Guest guest = getAuthenticatedGuest();
-        Attendee attendee = attendeeRepository.findById(attendeeId)
-                .orElseThrow(() -> new RuntimeException("Attendee not found"));
-
-        if (!attendee.getRsvp().getGuest().getId().equals(guest.getId())) {
-            throw new RuntimeException("Access denied: cannot delete another guest's attendee");
-        }
-
-        attendeeRepository.delete(attendee);
-        redirectAttributes.addFlashAttribute("successMessage", "Attendee deleted successfully");
-        return "redirect:/invitations/attendees";
-    }
 
     /**
      * Travel information for guest
      */
     @PreAuthorize("hasRole('GUEST')")
     @GetMapping("/travel-info")
-    public String travelInfoForm(@RequestParam Long guestId, @RequestParam Long eventId, Model model) {
+    public String travelInfoForm(@RequestParam Long guestId, @RequestParam Long eventId, Model model, HttpServletRequest request) {
         Guest guest = guestRepository.findById(guestId)
                 .orElseThrow(() -> new RuntimeException("Guest not found"));
 
         // Verify the guest belongs to the authenticated user
-        verifyGuestAccess(guest);
+        verifyGuestAccess(guest, request);
 
         WeddingEvent event = weddingEventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
@@ -470,14 +391,15 @@ public class GuestInvitationsController {
             @ModelAttribute TravelInfo travelInfo,
             @RequestParam(required = false) List<String> attendeeNames,
             @RequestParam(required = false) List<String> attendeeAges,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes,
+            HttpServletRequest request) {
 
         try {
             Guest guest = guestRepository.findById(guestId)
                     .orElseThrow(() -> new RuntimeException("Guest not found"));
 
             // Verify the guest belongs to the authenticated user
-            verifyGuestAccess(guest);
+            verifyGuestAccess(guest, request);
 
             WeddingEvent event = weddingEventRepository.findById(eventId)
                     .orElseThrow(() -> new RuntimeException("Event not found"));
@@ -548,32 +470,54 @@ public class GuestInvitationsController {
     /**
      * Verify that the authenticated guest has access to the specified guest record
      */
-    private void verifyGuestAccess(Guest guest) {
-        Guest authenticatedGuest = getAuthenticatedGuest();
-        if (!authenticatedGuest.getId().equals(guest.getId())) {
+    private void verifyGuestAccess(Guest guest, HttpServletRequest request) {
+        Guest authenticatedGuest = getAuthenticatedGuest(request);
+        if (authenticatedGuest == null || !authenticatedGuest.getId().equals(guest.getId())) {
             throw new RuntimeException("Access denied: You can only access your own information");
         }
     }
 
     /**
-     * Get authenticated guest from session
+     * Get authenticated guest from session or principal
      */
-    private Guest getAuthenticatedGuest() {
+    private Guest getAuthenticatedGuest(HttpServletRequest request) {
+        // First try session (set during guest login)
+        Object guestIdAttr = request != null ? request.getSession().getAttribute("guestId") : null;
+        if (guestIdAttr instanceof Long) {
+            return guestRepository.findById((Long) guestIdAttr).orElse(null);
+        }
+        if (guestIdAttr instanceof Integer) { // in case stored as Integer
+            return guestRepository.findById(((Integer) guestIdAttr).longValue()).orElse(null);
+        }
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName() == null) {
-            throw new RuntimeException("Guest not authenticated");
+            return null;
         }
-        
-        String principal = auth.getName();
-        String[] parts = extractFamilyNameAndPhone(principal);
-        String familyName = parts[0];
-        String guestPhoneNumber = parts[1];
 
-        Optional<Guest> guestOpt = guestRepository.findByFamilyNameIgnoreCaseAndContactPhone(familyName, guestPhoneNumber);
-        if (guestOpt.isEmpty()) {
-            throw new RuntimeException("Guest not found");
+        String principal = auth.getName();
+
+        // Principal formats we support:
+        // 1) "FamilyName_<guestId>" (new phone login)
+        // 2) "FamilyName_PhoneNumber" (older format)
+        String[] parts = principal.split("_");
+        if (parts.length == 2) {
+            String part2 = parts[1];
+            // Try as guestId
+            try {
+                Long guestId = Long.parseLong(part2);
+                return guestRepository.findById(guestId).orElse(null);
+            } catch (NumberFormatException ignore) {
+                // Fallback to family + phone lookup
+                String familyName = parts[0];
+                String guestPhoneNumber = part2;
+                return guestRepository.findByFamilyNameIgnoreCaseAndContactPhone(familyName, guestPhoneNumber)
+                        .orElse(null);
+            }
         }
-        return guestOpt.get();
+
+        // Fallback to email login (older behavior)
+        return guestRepository.findByContactEmail(principal);
     }
 
     /**

@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Admin API for WhatsApp message management
+ * Admin API for message management
  */
 @RestController
 @RequestMapping("/api/admin")
@@ -47,7 +47,6 @@ public class AdminMessageApiController {
                     map.put("id", event.getId());
                     map.put("name", event.getName());
                     map.put("date", event.getDate());
-                    map.put("status", event.getStatus());
                     return map;
                 })
                 .collect(Collectors.toList());
@@ -182,7 +181,9 @@ public class AdminMessageApiController {
                         com.wedknots.model.Guest guest = firstMsg.getGuest();
 
                         conv.put("guestId", guestId);
-                        conv.put("guestName", guest != null ? guest.getContactName() : "Unknown");
+                        conv.put("guestName", guest != null ? 
+                            ((guest.getContactFirstName() != null ? guest.getContactFirstName() : "") + " " + 
+                             (guest.getContactLastName() != null ? guest.getContactLastName() : "")).trim() : "Unknown");
                         conv.put("guestPhone", guest != null ? guest.getContactPhone() : "");
 
                         GuestMessage last = messages.get(0); // Already sorted DESC

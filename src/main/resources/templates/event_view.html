@@ -8,80 +8,86 @@
 <body class="bg-light">
 <th:block th:replace="~{_navbar :: hostNav}"></th:block>
 <div class="container py-5">
-  <div class="row">
-    <div class="col-md-8">
-      <div class="card shadow">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-          <h4 class="mb-0" th:text="${event.name}">Event Name</h4>
-          <div>
-            <span th:if="${event.status == 'Published'}" class="badge bg-success">Published</span>
-            <span th:if="${event.status == 'Draft'}" class="badge bg-secondary">Draft</span>
-            <span th:if="${event.status == 'Completed'}" class="badge bg-info">Completed</span>
-            <span th:if="${event.status == 'Cancelled'}" class="badge bg-danger">Cancelled</span>
-          </div>
-        </div>
-        <div class="card-body">
-          <dl class="row">
-            <dt class="col-sm-3">Event ID:</dt>
-            <dd class="col-sm-9" th:text="${event.id}">1</dd>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0" th:text="${event.name}">Event Name</h4>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3">Event ID:</dt>
+                        <dd class="col-sm-9" th:text="${event.id}">1</dd>
 
-            <dt class="col-sm-3">Bride Name:</dt>
-            <dd class="col-sm-9" th:text="${event.brideName}">Bride</dd>
+                        <dt class="col-sm-3">Bride Name:</dt>
+                        <dd class="col-sm-9" th:text="${event.brideName}">Bride</dd>
 
-            <dt class="col-sm-3">Groom Name:</dt>
-            <dd class="col-sm-9" th:text="${event.groomName}">Groom</dd>
+                        <dt class="col-sm-3">Groom Name:</dt>
+                        <dd class="col-sm-9" th:text="${event.groomName}">Groom</dd>
 
-            <dt class="col-sm-3">Event Date:</dt>
-            <dd class="col-sm-9">
-              <i class="bi bi-calendar3"></i>
-              <span th:text="${event.date}">Date</span>
-            </dd>
+                        <dt class="col-sm-3">Event Date:</dt>
+                        <dd class="col-sm-9">
+                            <i class="bi bi-calendar3"></i>
+                            <span th:text="${event.date}">Date</span>
+                        </dd>
 
-            <dt class="col-sm-3">Status:</dt>
-            <dd class="col-sm-9" th:text="${event.status}">Status</dd>
-          </dl>
+                        <dt class="col-sm-3">Place (Place):</dt>
+                        <dd class="col-sm-9">
+                            <a th:if="${event.aboutLocationUrl != null}" th:href="${event.aboutLocationUrl}"
+                               th:text="${event.place}" target="_blank">${event.place}</a>
+                            <span th:if="${event.aboutLocationUrl == null}"
+                                  th:text="${event.place}">${event.place}</span>
+                        </dd>
 
-          <div class="d-flex justify-content-between mt-4">
-            <a href="/events" class="btn btn-secondary">
-              <i class="bi bi-arrow-left"></i> Back to Events
-            </a>
-            <div>
-              <a th:href="@{/events/{id}/edit(id=${event.id})}" class="btn btn-warning">
-                <i class="bi bi-pencil"></i> Edit Event
-              </a>
+                        <dt class="col-sm-3">Expected Max Attendees:</dt>
+                        <dd class="col-sm-9" th:text="${event.defaultMaxAllowedAttendees}">0</dd>
+
+                        <dt class="col-sm-3">Preferred Travel Airport:</dt>
+                        <dd class="col-sm-9" th:text="${event.preferredTravelAirport}">Airport</dd>
+
+                        <dt class="col-sm-3">Preferred Travel Station:</dt>
+                        <dd class="col-sm-9" th:text="${event.preferredTravelStation}">Station</dd>
+
+                    </dl>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="/events" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Events
+                        </a>
+                        <div>
+                            <a th:href="@{/events/{id}/edit(id=${event.id})}" class="btn btn-warning">
+                                <i class="bi bi-pencil"></i> Edit Event
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
 
-    <div class="col-md-4">
-      <div class="card shadow mb-3">
-        <div class="card-header bg-secondary text-white">
-          <h5 class="mb-0">Quick Actions</h5>
+        <div class="col-md-4">
+            <div class="card shadow mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a th:href="@{/host/messages(eventId=${event.id})}" class="btn btn-outline-info">
+                            <i class="bi bi-chat-dots"></i> View Messages
+                        </a>
+                        <a th:href="@{/events/{id}/invitations(id=${event.id})}" class="btn btn-outline-success">
+                            <i class="bi bi-envelope-heart"></i> Manage Invitations
+                        </a>
+                        <a th:href="@{/events/{id}/hosts(id=${event.id})}" class="btn btn-outline-primary">
+                            <i class="bi bi-people"></i> Manage Hosts
+                        </a>
+                        <a th:href="@{/events/{id}/guests(id=${event.id})}" class="btn btn-outline-primary">
+                            <i class="bi bi-person-lines-fill"></i> Manage Guests
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-          <div class="d-grid gap-2">
-            <a th:href="@{/host/messages(eventId=${event.id})}" class="btn btn-outline-info">
-              <i class="bi bi-chat-dots"></i> View Messages
-            </a>
-            <a th:href="@{/events/{id}/invitations(id=${event.id})}" class="btn btn-outline-success">
-              <i class="bi bi-envelope-heart"></i> Manage Invitations
-            </a>
-            <a th:href="@{/events/{id}/whatsapp-config(id=${event.id})}" class="btn btn-outline-info">
-              <i class="bi bi-whatsapp"></i> WhatsApp Configuration
-            </a>
-            <a th:href="@{/events/{id}/hosts(id=${event.id})}" class="btn btn-outline-primary">
-              <i class="bi bi-people"></i> Manage Hosts
-            </a>
-            <a th:href="@{/events/{id}/guests(id=${event.id})}" class="btn btn-outline-primary">
-              <i class="bi bi-person-lines-fill"></i> Manage Guests
-            </a>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
 </div>
 </body>
 </html>

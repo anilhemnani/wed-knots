@@ -1,0 +1,583 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- ======================== -->
+    <!-- 1. TABLE DEFINITIONS    -->
+    <!-- ======================== -->
+
+    <!-- ===== BASELINE SCHEMA: Complete WedKnots Database ===== -->
+
+    <!-- 1. role_tbl -->
+    <changeSet id="1-create-role-table" author="baseline">
+        <createTable tableName="role_tbl">
+            <column name="id" type="BIGINT">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 2. app_user_tbl -->
+    <changeSet id="2-create-app-user-table" author="baseline">
+        <createTable tableName="app_user_tbl">
+            <column name="id" type="BIGINT">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="username" type="VARCHAR(255)"/>
+            <column name="password" type="VARCHAR(255)"/>
+            <column name="email" type="VARCHAR(255)"/>
+            <column name="provider" type="VARCHAR(255)"/>
+            <column name="role" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 3. user_roles_tbl -->
+    <changeSet id="3-create-user-roles-table" author="baseline">
+        <createTable tableName="user_roles_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT"/>
+            <column name="role_id" type="BIGINT"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_roles_tbl" baseColumnNames="user_id"
+                                 referencedTableName="app_user_tbl" referencedColumnNames="id"
+                                 constraintName="fk_userroles_user" onDelete="CASCADE"/>
+        <addForeignKeyConstraint baseTableName="user_roles_tbl" baseColumnNames="role_id"
+                                 referencedTableName="role_tbl" referencedColumnNames="id"
+                                 constraintName="fk_userroles_role" onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- 4. wedding_event_tbl -->
+    <changeSet id="4-create-wedding-event-table" author="baseline">
+        <createTable tableName="wedding_event_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)"/>
+            <column name="date" type="DATE"/>
+            <column name="bride_name" type="VARCHAR(255)"/>
+            <column name="groom_name" type="VARCHAR(255)"/>
+            <column name="subdomain" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="expected_guest_arrival_date" type="DATE"/>
+            <column name="expected_guest_departure_date" type="DATE"/>
+            <column name="preferred_travel_airport" type="VARCHAR(255)"/>
+            <column name="preferred_travel_station" type="VARCHAR(255)"/>
+            <column name="place" type="VARCHAR(255)"/>
+            <column name="default_max_allowed_attendees" type="INT"/>
+            <column name="about_location_url" type="VARCHAR(255)"/>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 5. host_tbl -->
+    <changeSet id="5-create-host-table" author="baseline">
+        <createTable tableName="host_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="username" type="VARCHAR(255)"/>
+            <column name="password" type="VARCHAR(255)"/>
+            <column name="email" type="VARCHAR(255)"/>
+            <column name="phone" type="VARCHAR(50)"/>
+            <column name="provider" type="VARCHAR(255)"/>
+            <column name="role" type="VARCHAR(255)"/>
+            <column name="event_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 6. guest_tbl -->
+    <changeSet id="6-create-guest-table" author="baseline">
+        <createTable tableName="guest_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="family_name" type="VARCHAR(255)"/>
+            <column name="contact_name" type="VARCHAR(255)"/>
+            <column name="contact_email" type="VARCHAR(255)"/>
+            <column name="side" type="VARCHAR(255)"/>
+            <column name="address_line_1" type="VARCHAR(255)"/>
+            <column name="address_line_2" type="VARCHAR(255)"/>
+            <column name="city" type="VARCHAR(100)"/>
+            <column name="country" type="VARCHAR(100)"/>
+            <column name="postal_code" type="VARCHAR(20)"/>
+            <column name="max_attendees" type="INT"/>
+            <column name="expected_arrival_date" type="DATE"/>
+            <column name="expected_departure_date" type="DATE"/>
+            <column name="expected_attendance" type="VARCHAR(50)"/>
+            <column name="event_id" type="BIGINT"/>
+            <column name="primary_phone_number" type="VARCHAR(50)"/>
+            <column name="contact_first_name" type="VARCHAR(255)"/>
+            <column name="contact_last_name" type="VARCHAR(255)"/>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="version" type="BIGINT" defaultValueNumeric="0"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 7. guest_phone_number_tbl - Multiple phone numbers per guest -->
+    <changeSet id="7-create-guest-phone-number-table" author="baseline">
+        <createTable tableName="guest_phone_number_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="guest_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="phone_number" type="VARCHAR(50)"/>
+            <column name="phone_type" type="VARCHAR(50)" defaultValue="PERSONAL"/>
+            <column name="is_primary" type="BOOLEAN" defaultValueBoolean="true"/>
+            <column name="event_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="contact_first_name" type="VARCHAR(255)"/>
+            <column name="contact_last_name" type="VARCHAR(255)"/>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 8. rsvp_tbl -->
+    <changeSet id="8-create-rsvp-table" author="baseline">
+        <createTable tableName="rsvp_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="guest_id" type="BIGINT">
+                <constraints unique="true" nullable="false"/>
+            </column>
+            <column name="event_id" type="BIGINT"/>
+            <column name="status" type="VARCHAR(50)" defaultValue="PENDINGG"/>
+            <column name="attendee_count" type="INT" defaultValueNumeric="0"/>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="version" type="BIGINT" defaultValueNumeric="0"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 9. attendee_tbl -->
+    <changeSet id="9-create-attendee-table" author="baseline">
+        <createTable tableName="attendee_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)"/>
+            <column name="mobile_number" type="VARCHAR(50)"/>
+            <column name="age_group" type="VARCHAR(50)"/>
+            <column name="rsvp_id" type="BIGINT"/>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 10. travel_info_tbl -->
+    <changeSet id="10-create-travel-info-table" author="baseline">
+        <createTable tableName="travel_info_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="guest_id" type="BIGINT">
+                <constraints unique="true" nullable="false"/>
+            </column>
+            <column name="arrival_mode" type="VARCHAR(50)"/>
+            <column name="arrival_date_time" type="TIMESTAMP"/>
+            <column name="arrival_flight_number" type="VARCHAR(255)"/>
+            <column name="arrival_train_number" type="VARCHAR(255)"/>
+            <column name="arrival_airport" type="VARCHAR(255)"/>
+            <column name="arrival_station" type="VARCHAR(255)"/>
+            <column name="arrival_pnr_number" type="VARCHAR(255)"/>
+            <column name="arrival_port" type="VARCHAR(255)"/>
+            <column name="departure_mode" type="VARCHAR(50)"/>
+            <column name="departure_date_time" type="TIMESTAMP"/>
+            <column name="departure_flight_number" type="VARCHAR(255)"/>
+            <column name="departure_train_number" type="VARCHAR(255)"/>
+            <column name="departure_airport" type="VARCHAR(255)"/>
+            <column name="departure_station" type="VARCHAR(255)"/>
+            <column name="departure_pnr_number" type="VARCHAR(255)"/>
+            <column name="departure_port" type="VARCHAR(255)"/>
+            <column name="needs_pickup" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="needs_drop" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="special_requirements" type="VARCHAR(1000)"/>
+            <column name="notes" type="VARCHAR(1000)"/>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 11. invitation_tbl -->
+    <changeSet id="11-create-invitation-table" author="baseline">
+        <createTable tableName="invitation_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="event_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="message" type="TEXT"/>
+            <column name="invitation_type" type="VARCHAR(255)"/>
+            <column name="image_url" type="VARCHAR(1024)"/>
+            <column name="message_type" type="VARCHAR(50)" defaultValue="TEMPLATE"/>
+            <column name="template_name" type="VARCHAR(255)"/>
+            <column name="template_language" type="VARCHAR(20)" defaultValue="en_US"/>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="created_by" type="VARCHAR(255)"/>
+            <column name="status" type="VARCHAR(50)" defaultValue="DRAFT"/>
+            <column name="delivery_method" type="VARCHAR(50)"/>
+            <column name="email_subject" type="VARCHAR(500)"/>
+            <column name="email_body" type="TEXT"/>
+            <column name="email_attachments" type="TEXT"/>
+            <column name="sms_text" type="TEXT"/>
+            <column name="whatsapp_text" type="TEXT"/>
+            <column name="whatsapp_media_url" type="VARCHAR(1000)"/>
+            <column name="whatsapp_media_type" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 12. invitation_log_tbl -->
+    <changeSet id="12-create-invitation-log-table" author="baseline">
+        <createTable tableName="invitation_log_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="invitation_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="guest_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sent_at" type="TIMESTAMP"/>
+            <column name="sent_by" type="VARCHAR(255)"/>
+            <column name="delivery_status" type="VARCHAR(255)" defaultValue="PENDING"/>
+            <column name="error_message" type="TEXT"/>
+            <column name="delivery_timestamp" type="TIMESTAMP"/>
+            <column name="invitation_method" type="VARCHAR(50)" defaultValue="EMAIL">
+                <constraints nullable="false"/>
+            </column>
+            <column name="external_method_description" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 13. invitation_phone_record_tbl - Track which phone numbers received invitations -->
+    <changeSet id="13-create-invitation-phone-record-table" author="baseline">
+        <createTable tableName="invitation_phone_record_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="invitation_log_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="guest_phone_number_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="phone_number" type="VARCHAR(50)"/>
+            <column name="is_primary" type="BOOLEAN"/>
+            <column name="phone_type" type="VARCHAR(50)"/>
+            <column name="contact_method" type="VARCHAR(50)"/>
+            <column name="delivery_status" type="VARCHAR(50)" defaultValue="PENDING"/>
+            <column name="delivery_timestamp" type="TIMESTAMP"/>
+            <column name="error_message" type="VARCHAR(1000)"/>
+            <column name="recorded_at" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 14. guest_message_tbl -->
+    <changeSet id="14-create-guest-message-table" author="baseline">
+        <createTable tableName="guest_message_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="event_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="guest_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="guest_phone_number" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="message_content" type="TEXT"/>
+            <column name="direction" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="message_type" type="VARCHAR(50)" defaultValue="TEXT"/>
+            <column name="media_url" type="TEXT"/>
+            <column name="is_read" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="status" type="VARCHAR(50)" defaultValue="PENDING"/>
+            <column name="error_message" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="read_at" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 15. event_traffic_log -->
+    <changeSet id="15-create-event-traffic-log" author="baseline">
+        <createTable tableName="event_traffic_log">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="event_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="path" type="VARCHAR(512)"/>
+            <column name="created_at" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 16. unauthorized_access_log -->
+    <changeSet id="16-create-unauthorized-access-log" author="baseline">
+        <createTable tableName="unauthorized_access_log">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="username" type="VARCHAR(255)"/>
+            <column name="role" type="VARCHAR(255)"/>
+            <column name="request_uri" type="VARCHAR(1024)"/>
+            <column name="http_method" type="VARCHAR(16)"/>
+            <column name="client_ip" type="VARCHAR(64)"/>
+            <column name="reason" type="VARCHAR(1024)"/>
+            <column name="created_at" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 17. message_delivery_queue -->
+    <changeSet id="17-create-message-delivery-queue-table" author="baseline">
+        <createTable tableName="message_delivery_queue">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="message_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="message_type" type="VARCHAR(50)"/>
+            <column name="guest_id" type="BIGINT"/>
+            <column name="event_id" type="BIGINT"/>
+            <column name="guest_message_id" type="BIGINT"/>
+            <column name="title" type="VARCHAR(500)"/>
+            <column name="content" type="TEXT"/>
+            <column name="preferred_mode" type="VARCHAR(50)"/>
+            <column name="delivery_mode" type="VARCHAR(50)"/>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="delivery_status" type="VARCHAR(50)"/>
+            <column name="error_message" type="TEXT"/>
+            <column name="retry_count" type="INT" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="max_retries" type="INT" defaultValue="3">
+                <constraints nullable="false"/>
+            </column>
+            <column name="priority" type="INT" defaultValue="5">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="scheduled_at" type="TIMESTAMP"/>
+            <column name="processing_started_at" type="TIMESTAMP"/>
+            <column name="processed_at" type="TIMESTAMP"/>
+            <column name="next_retry_at" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <!-- ======================== -->
+    <!-- 2. CONSTRAINTS/INDEXES  -->
+    <!-- ======================== -->
+
+    <!-- Foreign key constraints -->
+    <changeSet id="fk-host-event" author="baseline">
+        <addForeignKeyConstraint baseTableName="host_tbl" baseColumnNames="event_id"
+                                 referencedTableName="wedding_event_tbl" referencedColumnNames="id"
+                                 constraintName="fk_host_event" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="fk-guest-event" author="baseline">
+        <addForeignKeyConstraint baseTableName="guest_tbl" baseColumnNames="event_id"
+                                 referencedTableName="wedding_event_tbl" referencedColumnNames="id"
+                                 constraintName="fk_guest_event" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="fk-guest-phone-number-guest" author="baseline">
+        <addForeignKeyConstraint baseTableName="guest_phone_number_tbl" baseColumnNames="guest_id"
+                                 referencedTableName="guest_tbl" referencedColumnNames="id"
+                                 constraintName="fk_guest_phone_number_guest" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="fk-guest-phone-number-event" author="baseline">
+        <addForeignKeyConstraint baseTableName="guest_phone_number_tbl" baseColumnNames="event_id"
+                                 referencedTableName="wedding_event_tbl" referencedColumnNames="id"
+                                 constraintName="fk_guest_phone_number_event" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="fk-rsvp-guest" author="baseline">
+        <addForeignKeyConstraint baseTableName="rsvp_tbl" baseColumnNames="guest_id"
+                                 referencedTableName="guest_tbl" referencedColumnNames="id"
+                                 constraintName="fk_rsvp_guest" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="fk-attendee-rsvp" author="baseline">
+        <addForeignKeyConstraint baseTableName="attendee_tbl" baseColumnNames="rsvp_id"
+                                 referencedTableName="rsvp_tbl" referencedColumnNames="id"
+                                 constraintName="fk_attendee_rsvp" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="fk-travel-info-guest" author="baseline">
+        <addForeignKeyConstraint baseTableName="travel_info_tbl" baseColumnNames="guest_id"
+                                 referencedTableName="guest_tbl" referencedColumnNames="id"
+                                 constraintName="fk_travel_info_guest" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="fk-invitation-event" author="baseline">
+        <addForeignKeyConstraint baseTableName="invitation_tbl" baseColumnNames="event_id"
+                                 referencedTableName="wedding_event_tbl" referencedColumnNames="id"
+                                 constraintName="fk_invitation_event" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="fk-invlog-invitation" author="baseline">
+        <addForeignKeyConstraint baseTableName="invitation_log_tbl" baseColumnNames="invitation_id"
+                                 referencedTableName="invitation_tbl" referencedColumnNames="id"
+                                 constraintName="fk_invlog_invitation" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="fk-invlog-guest" author="baseline">
+        <addForeignKeyConstraint baseTableName="invitation_log_tbl" baseColumnNames="guest_id"
+                                 referencedTableName="guest_tbl" referencedColumnNames="id"
+                                 constraintName="fk_invlog_guest" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="fk-inv-phone-rec-log" author="baseline">
+        <addForeignKeyConstraint baseTableName="invitation_phone_record_tbl" baseColumnNames="invitation_log_id"
+                                 referencedTableName="invitation_log_tbl" referencedColumnNames="id"
+                                 constraintName="fk_inv_phone_rec_log" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="fk-inv-phone-rec-phone" author="baseline">
+        <addForeignKeyConstraint baseTableName="invitation_phone_record_tbl" baseColumnNames="guest_phone_number_id"
+                                 referencedTableName="guest_phone_number_tbl" referencedColumnNames="id"
+                                 constraintName="fk_inv_phone_rec_phone" onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- Unique constraints -->
+    <changeSet id="uk-guest-contact-email-event" author="baseline">
+        <addUniqueConstraint tableName="guest_tbl" columnNames="contact_email, event_id"
+                             constraintName="uk_guest_contact_email_event"/>
+    </changeSet>
+    <changeSet id="uk-guest-primary-phone-event" author="baseline">
+        <addUniqueConstraint tableName="guest_tbl" columnNames="primary_phone_number, event_id"
+                             constraintName="uk_guest_primary_phone_event"/>
+    </changeSet>
+
+    <!-- Indexes -->
+    <changeSet id="idx-invitation-guest" author="baseline">
+        <createIndex indexName="idx_invitation_guest" tableName="invitation_phone_record_tbl">
+            <column name="invitation_log_id"/>
+            <column name="guest_phone_number_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="idx-inv-phone-delivery-status" author="baseline">
+        <createIndex indexName="idx_inv_phone_delivery_status" tableName="invitation_phone_record_tbl">
+            <column name="delivery_status"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="idx-inv-phone-contact-method" author="baseline">
+        <createIndex indexName="idx_inv_phone_contact_method" tableName="invitation_phone_record_tbl">
+            <column name="contact_method"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="idx-event-is-read" author="baseline">
+        <createIndex indexName="idx_event_is_read" tableName="guest_message_tbl">
+            <column name="event_id"/>
+            <column name="is_read"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="idx-guest-event" author="baseline">
+        <createIndex indexName="idx_guest_event" tableName="guest_message_tbl">
+            <column name="guest_id"/>
+            <column name="event_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="idx-timestamp" author="baseline">
+        <createIndex indexName="idx_timestamp" tableName="guest_message_tbl">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="idx-msg-queue-message-id" author="system">
+        <createIndex tableName="message_delivery_queue" indexName="idx_msg_queue_message_id">
+            <column name="message_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="idx-msg-queue-status" author="system">
+        <createIndex tableName="message_delivery_queue" indexName="idx_msg_queue_status">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="idx-msg-queue-guest" author="system">
+        <createIndex tableName="message_delivery_queue" indexName="idx_msg_queue_guest">
+            <column name="guest_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="idx-msg-queue-event" author="system">
+        <createIndex tableName="message_delivery_queue" indexName="idx_msg_queue_event">
+            <column name="event_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="idx-msg-queue-scheduled" author="system">
+        <createIndex tableName="message_delivery_queue" indexName="idx_msg_queue_scheduled">
+            <column name="scheduled_at"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="idx-msg-queue-next-retry" author="system">
+        <createIndex tableName="message_delivery_queue" indexName="idx_msg_queue_next_retry">
+            <column name="next_retry_at"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="idx-msg-queue-priority" author="system">
+        <createIndex tableName="message_delivery_queue" indexName="idx_msg_queue_priority">
+            <column name="priority"/>
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ======================== -->
+    <!-- 3. SEED DATA             -->
+    <!-- ======================== -->
+
+    <!-- 17. Seed Data -->
+    <changeSet id="17-insert-seed-data" author="baseline">
+        <!-- Insert roles -->
+        <insert tableName="role_tbl">
+            <column name="id" valueNumeric="1"/>
+            <column name="name" value="ROLE_ADMIN"/>
+        </insert>
+        <insert tableName="role_tbl">
+            <column name="id" valueNumeric="2"/>
+            <column name="name" value="ROLE_HOST"/>
+        </insert>
+        <insert tableName="role_tbl">
+            <column name="id" valueNumeric="3"/>
+            <column name="name" value="ROLE_GUEST"/>
+        </insert>
+
+        <!-- Insert admin user -->
+        <insert tableName="app_user_tbl">
+            <column name="id" valueNumeric="1"/>
+            <column name="username" value="admin"/>
+            <column name="password" value=""/>
+            <column name="email" value="admin@wed-knots.uk"/>
+            <column name="provider" value="local"/>
+            <column name="role" value="ROLE_ADMIN"/>
+        </insert>
+        <insert tableName="user_roles_tbl">
+            <column name="user_id" valueNumeric="1"/>
+            <column name="role_id" valueNumeric="1"/>
+        </insert>
+
+    </changeSet>
+</databaseChangeLog>
+

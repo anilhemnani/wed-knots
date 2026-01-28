@@ -178,6 +178,9 @@
     let cachedCurrentMessages = [];
     let currentGuestName = '';
     let currentGuestPhone = '';
+    let isTyping = false;
+    let typingTimeout = null;
+    let lastMessageCount = 0;
 
     // Get URL parameter
     function getUrlParameter(name) {
@@ -330,6 +333,84 @@
             });
     }
 
+    // Refresh only the message thread content without disrupting input
+    function refreshMessageThreadContent(guestId) {
+        fetch(`/api/host/messages/event/${currentEventId}/guest/${guestId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Only update if new messages arrived
+                if (data.messages && data.messages.length !== lastMessageCount) {
+                    updateMessageThreadContentOnly(data);
+                    lastMessageCount = data.messages.length;
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing messages:', error);
+            });
+    }
+
+    // Update only the message thread content, preserving the compose area
+    function updateMessageThreadContentOnly(data) {
+        const threadContent = document.getElementById('messageThreadContent');
+        if (!threadContent) return;
+
+        // Cache messages
+        cachedCurrentMessages = data.messages || cachedCurrentMessages;
+
+        let html = '';
+        if (!cachedCurrentMessages || cachedCurrentMessages.length === 0) {
+            html = '<div class="text-center text-muted py-4">No messages yet</div>';
+        } else {
+            // Sort messages
+            let sortedMessages = [...cachedCurrentMessages];
+            sortedMessages.sort((a, b) => {
+                const dateA = new Date(a.createdAt);
+                const dateB = new Date(b.createdAt);
+                return sortDescending ? dateB - dateA : dateA - dateB;
+            });
+
+            sortedMessages.forEach(msg => {
+                const direction = msg.direction ? msg.direction.toLowerCase() : 'inbound';
+                const sender = direction === 'outbound' ? 'Host' : 'Guest';
+                const messageText = msg.messageContent || '(Empty message)';
+                const isTemplate = msg.messageType === 'TEMPLATE' || (messageText.includes('Save the Date') || messageText.includes('With joyful hearts'));
+
+                html += `
+                    <div class="message-bubble ${direction}">
+                        <div class="small text-muted fw-semibold mb-1">
+                            ${sender}
+                            ${isTemplate ? '<span class="badge bg-success ms-1" style="font-size: 0.65rem;">WhatsApp Template</span>' : ''}
+                        </div>
+                        <div style="white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(messageText)}</div>
+                        <div class="message-timestamp">
+                            ${formatTime(msg.createdAt)}
+                            ${msg.status ? `• ${msg.status}` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Store current scroll position
+        const currentScrollTop = threadContent.scrollTop;
+        const isAtBottom = threadContent.scrollHeight - threadContent.scrollTop <= threadContent.clientHeight + 50;
+
+        // Update content
+        threadContent.innerHTML = html;
+
+        // Restore scroll position or scroll to bottom if was at bottom
+        if (isAtBottom && !sortDescending) {
+            threadContent.scrollTop = threadContent.scrollHeight;
+        } else {
+            threadContent.scrollTop = currentScrollTop;
+        }
+    }
+
     // Display message thread
     function displayMessageThread(data) {
         const container = document.getElementById('messageThread');
@@ -338,6 +419,7 @@
         currentGuestName = data.guestName || currentGuestName;
         currentGuestPhone = data.guestPhone || currentGuestPhone;
         cachedCurrentMessages = data.messages || cachedCurrentMessages;
+        lastMessageCount = cachedCurrentMessages.length;
 
         let html = `
             <div class="border-bottom pb-3 mb-3 d-flex justify-content-between align-items-center">
@@ -413,7 +495,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <small class="text-muted">
-                                <i class="bi bi-whatsapp"></i> Will send via WhatsApp
+                                <i class="bi bi-chat-dots"></i> Reply to guest
                             </small>
                         </div>
                         <div>
@@ -439,7 +521,30 @@
             }
         }
 
-        // Setup form handler
+        // Setup form handler and typing detection
+        const messageInput = document.getElementById('messageContent');
+        if (messageInput) {
+            // Track when user is typing
+            messageInput.addEventListener('input', () => {
+                isTyping = true;
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    isTyping = false;
+                }, 3000); // Consider user stopped typing after 3 seconds of inactivity
+            });
+
+            messageInput.addEventListener('focus', () => {
+                isTyping = true;
+            });
+
+            messageInput.addEventListener('blur', () => {
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    isTyping = false;
+                }, 1000);
+            });
+        }
+
         document.getElementById('composeForm').addEventListener('submit', sendMessage);
     }
 
@@ -456,6 +561,10 @@
             messageContent: messageContent
         };
 
+        // Disable send button to prevent double-sending
+        const sendButton = e.target.querySelector('button[type="submit"]');
+        sendButton.disabled = true;
+
         fetch('/api/messages/send-to-guest', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -465,12 +574,19 @@
         .then(data => {
             showStatus('Message sent successfully!', 'success');
             document.getElementById('messageContent').value = '';
-            loadMessageThread(currentGuestId);
-            loadConversations(); // Refresh conversations
+
+            // Refresh only the message thread content without disrupting form
+            setTimeout(() => {
+                refreshMessageThreadContent(currentGuestId);
+                loadConversations(); // Refresh conversation list
+            }, 500);
         })
         .catch(error => {
             console.error('Error sending message:', error);
             showStatus('Failed to send message', 'danger');
+        })
+        .finally(() => {
+            sendButton.disabled = false;
         });
     }
 
@@ -550,12 +666,12 @@
     // Load on page load
     loadEvents();
 
-    // Auto-refresh every 10 seconds
+    // Smart auto-refresh: only refresh when user is NOT typing
     setInterval(() => {
-        if (currentEventId) {
+        if (currentEventId && !isTyping) {
             loadConversations();
             if (currentGuestId) {
-                loadMessageThread(currentGuestId);
+                refreshMessageThreadContent(currentGuestId);
             }
         }
     }, 10000);

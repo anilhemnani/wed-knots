@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Host API for WhatsApp message management
+ * Host API for message management
  */
 @RestController
 @RequestMapping("/api/host")
@@ -53,7 +53,6 @@ public class HostMessageApiController {
                     map.put("id", event.getId());
                     map.put("name", event.getName());
                     map.put("date", event.getDate());
-                    map.put("status", event.getStatus());
                     return map;
                 })
                 .collect(Collectors.toList());
@@ -87,7 +86,9 @@ public class HostMessageApiController {
                         com.wedknots.model.Guest guest = firstMsg.getGuest();
 
                         conv.put("guestId", guestId);
-                        conv.put("guestName", guest != null ? guest.getContactName() : "Unknown");
+                        conv.put("guestName", guest != null ?
+                            ((guest.getContactFirstName() != null ? guest.getContactFirstName() : "") + " " +
+                             (guest.getContactLastName() != null ? guest.getContactLastName() : "")).trim() : "Unknown");
                         conv.put("guestPhone", guest != null ? guest.getContactPhone() : "");
 
                         GuestMessage last = messages.get(0); // Already sorted DESC
@@ -152,7 +153,8 @@ public class HostMessageApiController {
 
             Map<String, Object> response = new HashMap<>();
             response.put("guestId", guestId);
-            response.put("guestName", guest.getContactName());
+            response.put("guestName", (guest.getContactFirstName() != null ? guest.getContactFirstName() : "") + " " + 
+                                      (guest.getContactLastName() != null ? guest.getContactLastName() : ""));
             response.put("guestPhone", guest.getContactPhone());
             response.put("messages", messageDTOs);
 

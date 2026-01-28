@@ -50,10 +50,6 @@ public interface GuestMessageRepository extends JpaRepository<GuestMessage, Long
      */
     Page<GuestMessage> findByGuestPhoneNumberAndEventOrderByCreatedAtDesc(String phoneNumber, WeddingEvent event, Pageable pageable);
 
-    /**
-     * Find message by WhatsApp message ID
-     */
-    Optional<GuestMessage> findByWhatsappMessageId(String whatsappMessageId);
 
     /**
      * Count unread messages for an event

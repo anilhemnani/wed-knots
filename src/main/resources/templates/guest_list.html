@@ -27,9 +27,6 @@
             <p class="text-muted" th:text="'Bride: ' + ${event.brideName} + ' | Groom: ' + ${event.groomName}"></p>
         </div>
         <div>
-            <a th:href="@{/events/{id}/guests/whatsapp-rsvp-send(id=${event.id})}" class="btn btn-success me-2">
-                <i class="bi bi-whatsapp"></i> Send WhatsApp RSVP
-            </a>
             <a th:href="@{/host/messages(eventId=${event.id})}" class="btn btn-info">
                 <i class="bi bi-chat-dots"></i> View Messages
             </a>
@@ -60,48 +57,84 @@
                         <th>Contact Name</th>
                         <th>Email</th>
                         <th>Phone</th>
+                        <th>City</th>
+                        <th>Country</th>
                         <th>Side</th>
                         <th>Max Attendees</th>
                         <th class="text-end">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="guest : ${guests}">
-                        <td th:text="${guest.familyName}"></td>
-                        <td th:text="${guest.contactName}"></td>
-                        <td th:text="${guest.contactEmail}"></td>
-                        <td>
-                            <span th:if="${guest.primaryPhoneNumberString != null}"
-                                  th:text="${guest.primaryPhoneNumberString}"
-                                  th:title="${guest.phoneNumbers.size() > 1 ? 'Primary • Total: ' + guest.phoneNumbers.size() : ''}"
-                                  th:class="${guest.phoneNumbers.size() > 1 ? 'cursor-help' : ''}"></span>
-                            <span th:if="${guest.primaryPhoneNumberString == null}" class="text-muted">-</span>
-                        </td>
-                        <td th:text="${guest.side}"></td>
-                        <td th:text="${guest.maxAttendees}"></td>
-                        <td class="text-end">
-                            <button type="button"
-                                    class="btn btn-sm btn-success me-1 send-whatsapp-btn"
-                                    th:data-guest-id="${guest.id}"
-                                    th:data-guest-name="${guest.contactName}"
-                                    th:data-event-id="${event.id}"
-                                    th:disabled="${guest.primaryPhoneNumberString == null}"
-                                    th:title="${guest.primaryPhoneNumberString != null ? 'Send WhatsApp RSVP' : 'No phone number'}">
-                                <i class="bi bi-whatsapp"></i>
-                            </button>
-                            <a th:href="@{/guests/{id}/rsvp(id=${guest.id})}" class="btn btn-sm btn-info me-1" title="View RSVP & Attendees">
-                                <i class="bi bi-calendar-check"></i>
-                            </a>
-                            <a th:href="@{/events/{eventId}/guests/{id}/edit(eventId=${event.id},id=${guest.id})}" class="btn btn-sm btn-warning me-1">
-                                <i class="bi bi-pencil-fill"></i>
-                            </a>
-                            <form th:action="@{/events/{eventId}/guests/{id}/delete(eventId=${event.id},id=${guest.id})}" method="POST" style="display:inline;">
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">
-                                    <i class="bi bi-trash-fill"></i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
+                    <th:block th:each="guest, guestStat : ${guests}">
+                        <tr>
+                            <td th:text="${guest.familyName}"></td>
+                            <td th:text="${guest.contactFirstName} + ' ' + ${guest.contactLastName}"></td>
+                            <td th:text="${guest.contactEmail}"></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span th:if="${guest.primaryPhoneNumber != null}"
+                                          th:text="${guest.primaryPhoneNumber}"
+                                          class="font-monospace"></span>
+                                    <span th:if="${guest.primaryPhoneNumber == null}" class="text-muted">-</span>
+
+                                    <!-- Expand button for additional phones -->
+                                    <th:block th:if="${guest.phoneNumbers != null && !guest.phoneNumbers.isEmpty()}">
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-secondary expand-phones-btn"
+                                                th:data-guest-id="${guest.id}"
+                                                title="Show additional phone numbers">
+                                            <i class="bi bi-plus-circle"></i>
+                                            <span class="badge bg-secondary" th:text="${guest.phoneNumbers.size()}"></span>
+                                        </button>
+                                    </th:block>
+                                </div>
+                            </td>
+                            <td th:text="${guest.city != null ? guest.city : '-'}"></td>
+                            <td th:text="${guest.country != null ? guest.country : '-'}"></td>
+                            <td th:text="${guest.side}"></td>
+                            <td th:text="${guest.maxAttendees}"></td>
+                            <td class="text-end">
+                                <a th:href="@{/events/{eventId}/guests/{id}/edit(eventId=${event.id},id=${guest.id})}" class="btn btn-sm btn-warning me-1">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                                <form th:action="@{/events/{eventId}/guests/{id}/delete(eventId=${event.id},id=${guest.id})}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+
+                        <!-- Additional phones expandible row -->
+                        <tr th:if="${guest.phoneNumbers != null && !guest.phoneNumbers.isEmpty()}"
+                            th:id="'phones-' + ${guest.id}"
+                            class="additional-phones-row"
+                            style="display: none;">
+                            <td colspan="7" class="p-0 border-0">
+                                <div class="bg-light p-3 border-top border-bottom">
+                                    <h6 class="mb-3 text-muted">Additional Phone Numbers</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-borderless mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 40%;">Phone Number</th>
+                                                    <th style="width: 30%;">First Name</th>
+                                                    <th style="width: 30%;">Last Name</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr th:each="phone : ${guest.phoneNumbers}">
+                                                    <td class="font-monospace" th:text="${phone.phoneNumber}"></td>
+                                                    <td th:text="${phone.contactFirstName}"></td>
+                                                    <td th:text="${phone.contactLastName}"></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </th:block>
                     </tbody>
                 </table>
             </div>
@@ -110,8 +143,36 @@
 </div>
 
 <script>
-// Handle individual WhatsApp RSVP send buttons
+// Handle expandible additional phone numbers
 document.addEventListener('DOMContentLoaded', function() {
+    const expandButtons = document.querySelectorAll('.expand-phones-btn');
+
+    expandButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const guestId = this.dataset.guestId;
+            const phonesRow = document.getElementById('phones-' + guestId);
+
+            if (phonesRow) {
+                const isHidden = phonesRow.style.display === 'none';
+                phonesRow.style.display = isHidden ? 'table-row' : 'none';
+
+                // Update button appearance
+                const icon = this.querySelector('i');
+                if (isHidden) {
+                    icon.className = 'bi bi-dash-circle';
+                    this.classList.remove('btn-outline-secondary');
+                    this.classList.add('btn-secondary');
+                } else {
+                    icon.className = 'bi bi-plus-circle';
+                    this.classList.remove('btn-secondary');
+                    this.classList.add('btn-outline-secondary');
+                }
+            }
+        });
+    });
+
+    // Handle individual WhatsApp RSVP send buttons
     const sendButtons = document.querySelectorAll('.send-whatsapp-btn');
 
     sendButtons.forEach(button => {

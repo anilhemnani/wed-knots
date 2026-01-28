@@ -61,4 +61,20 @@ public interface GuestPhoneNumberRepository extends JpaRepository<GuestPhoneNumb
      */
     @Query("SELECT gpn FROM GuestPhoneNumber gpn WHERE gpn.phoneNumber = :phoneNumber AND gpn.guest.event.id = :eventId")
     Optional<GuestPhoneNumber> findPhoneNumberInEvent(@Param("phoneNumber") String phoneNumber, @Param("eventId") Long eventId);
+
+    /**
+     * Check if primary phone number already exists in the event (for validation)
+     * Checks both primary phones in guest_tbl and additional phones in guest_phone_number
+     */
+    @Query("SELECT CASE WHEN COUNT(g) > 0 THEN true ELSE false END FROM Guest g " +
+           "WHERE g.primaryPhoneNumber = :phoneNumber AND g.event.id = :eventId AND (:guestId IS NULL OR g.id != :guestId)")
+    Boolean existsPrimaryPhoneInEvent(@Param("phoneNumber") String phoneNumber, @Param("eventId") Long eventId, @Param("guestId") Long guestId);
+
+    /**
+     * Check if phone number exists anywhere in event (primary or additional)
+     */
+    @Query("SELECT CASE WHEN (EXISTS(SELECT 1 FROM Guest g WHERE g.primaryPhoneNumber = :phoneNumber AND g.event.id = :eventId AND (:guestId IS NULL OR g.id != :guestId)) " +
+           "OR EXISTS(SELECT 1 FROM GuestPhoneNumber gpn WHERE gpn.phoneNumber = :phoneNumber AND gpn.guest.event.id = :eventId AND gpn.guest.id != :guestId)) " +
+           "THEN true ELSE false END")
+    Boolean existsPhoneAnywhere(@Param("phoneNumber") String phoneNumber, @Param("eventId") Long eventId, @Param("guestId") Long guestId);
 }

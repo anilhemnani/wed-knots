@@ -23,22 +23,43 @@ public class Guest {
     @Column(name = "family_name")
     private String familyName;
 
-    @Column(name = "contact_name")
-    private String contactName;
+
+    @Column(name = "contact_first_name")
+    private String contactFirstName;
+
+    @Column(name = "contact_last_name")
+    private String contactLastName;
 
     @Column(name = "contact_email")
     private String contactEmail;
 
-    // Phone numbers managed via GuestPhoneNumber entity (one-to-many relationship)
+    // Primary phone number stored directly in Guest table
+    // Contact name for primary phone is same as guest's contactFirstName/contactLastName
+    @Column(name = "primary_phone_number")
+    private String primaryPhoneNumber;
+
+
+    // Additional phone numbers managed via GuestPhoneNumber entity (one-to-many relationship)
     @OneToMany(mappedBy = "guest", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Builder.Default
     private java.util.List<GuestPhoneNumber> phoneNumbers = new java.util.ArrayList<>();
 
     @Column(name = "side")
     private String side;
 
-    @Column(name = "address")
-    private String address;
+    @Column(name = "address_line_1")
+    private String addressLine1;
+
+    @Column(name = "address_line_2")
+    private String addressLine2;
+
+    @Column(name = "postal_code")
+    private String postalCode;
+
+    @Column(name = "city")
+    private String city;
+
+    @Column(name = "country")
+    private String country;
 
     @Column(name = "max_attendees")
     private int maxAttendees;
@@ -72,6 +93,9 @@ public class Guest {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Version
+    private Long version;
+
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -94,44 +118,27 @@ public class Guest {
         // Kept for backward compatibility but does nothing
     }
 
-    // Helper method to get primary phone number
-    public GuestPhoneNumber getPrimaryPhoneNumber() {
-        return phoneNumbers.stream()
-                .filter(phone -> Boolean.TRUE.equals(phone.getIsPrimary()))
-                .findFirst()
-                .orElse(phoneNumbers.isEmpty() ? null : phoneNumbers.get(0));
-    }
-
-    // Helper method to get primary phone number as string
-    public String getPrimaryPhoneNumberString() {
-        GuestPhoneNumber primary = getPrimaryPhoneNumber();
-        return primary != null ? primary.getPhoneNumber() : null;
-    }
-
     // Helper method for backward compatibility - get contact phone (for views)
     public String getContactPhone() {
-        return getPrimaryPhoneNumberString();
+        return primaryPhoneNumber;
     }
 
     // Helper method for backward compatibility - set contact phone
     public void setContactPhone(String phoneNumber) {
-        if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
-            // Only for migration/setting single phone - actual management via phoneNumbers collection
-            if (phoneNumbers.isEmpty()) {
-                GuestPhoneNumber primary = GuestPhoneNumber.builder()
-                        .guest(this)
-                        .phoneNumber(phoneNumber)
-                        .phoneType(GuestPhoneNumber.PhoneType.PERSONAL)
-                        .isPrimary(true)
-                        .build();
-                phoneNumbers.add(primary);
-            } else {
-                // Update existing primary
-                GuestPhoneNumber primary = getPrimaryPhoneNumber();
-                if (primary != null) {
-                    primary.setPhoneNumber(phoneNumber);
-                }
-            }
+        this.primaryPhoneNumber = phoneNumber;
+    }
+
+    // Get all phone numbers (primary + additional)
+    public java.util.List<String> getAllPhoneNumbers() {
+        java.util.List<String> allNumbers = new java.util.ArrayList<>();
+        if (primaryPhoneNumber != null && !primaryPhoneNumber.trim().isEmpty()) {
+            allNumbers.add(primaryPhoneNumber);
         }
+        phoneNumbers.forEach(phone -> {
+            if (phone.getPhoneNumber() != null && !phone.getPhoneNumber().trim().isEmpty()) {
+                allNumbers.add(phone.getPhoneNumber());
+            }
+        });
+        return allNumbers;
     }
 }

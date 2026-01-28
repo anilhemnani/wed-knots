@@ -162,6 +162,101 @@ public class GuestAuthenticationService {
     }
 
     /**
+     * Normalize phone numbers to digits only, optionally keep leading '+'
+     */
+    private String normalizePhone(String phone) {
+        if (phone == null) return null;
+        // Remove spaces, parentheses, dashes
+        String cleaned = phone.replaceAll("[\\s\\-\\(\\)]", "");
+        // If starts with 00, convert to +
+        if (cleaned.startsWith("00")) {
+            cleaned = "+" + cleaned.substring(2);
+        }
+        // If starts with single 0 but not 00, keep as-is (local) and also consider without leading 0
+        return cleaned;
+    }
+
+    /**
+     * Normalize phone into multiple candidate forms to match stored numbers
+     */
+    private java.util.List<String> generatePhoneCandidates(String phone) {
+        java.util.List<String> variants = new java.util.ArrayList<>();
+        if (phone == null || phone.trim().isEmpty()) return variants;
+
+        String p = phone.trim();
+        String cleaned = p.replaceAll("[\\s\\-\\(\\)]", "");
+
+        // exact cleaned
+        variants.add(cleaned);
+
+        // 00 -> +
+        if (cleaned.startsWith("00")) {
+            variants.add("+" + cleaned.substring(2));
+        }
+
+        // leading +, variant without plus
+        if (cleaned.startsWith("+")) {
+            variants.add(cleaned.substring(1));
+        }
+
+        // leading single 0: add without leading 0
+        if (cleaned.startsWith("0") && !cleaned.startsWith("00")) {
+            variants.add(cleaned.substring(1));
+        }
+
+        // also add original trimmed if different
+        if (!variants.contains(p)) {
+            variants.add(p);
+        }
+
+        // Deduplicate
+        return variants.stream().distinct().toList();
+    }
+
+    /**
+     * Validate guest login using phone contact last name + phone number (any registered phone)
+     */
+    public GuestLoginResult validateGuestLoginByPhoneContact(String contactLastName, String phoneNumber) {
+        if (contactLastName == null || contactLastName.trim().isEmpty()) {
+            return new GuestLoginResult(false, "Contact last name is required", null);
+        }
+        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+            return new GuestLoginResult(false, "Phone number is required", null);
+        }
+
+        java.util.List<String> phoneCandidates = generatePhoneCandidates(phoneNumber);
+
+        Optional<Guest> guestOpt = Optional.empty();
+        for (String candidate : phoneCandidates) {
+            guestOpt = guestRepository.findByContactLastNameAndAnyPhone(contactLastName, candidate);
+            if (guestOpt.isPresent()) {
+                break;
+            }
+            // Legacy: also try familyName + phone in case last name stored as family
+            guestOpt = guestRepository.findByFamilyNameAndAnyPhoneNumber(contactLastName, candidate);
+            if (guestOpt.isPresent()) {
+                break;
+            }
+            guestOpt = guestRepository.findByFamilyNameIgnoreCaseAndContactPhone(contactLastName, candidate);
+            if (guestOpt.isPresent()) {
+                break;
+            }
+        }
+
+        if (guestOpt.isEmpty()) {
+            logger.warn("Guest login attempt failed - no guest found with contact last name: {} and phone variants: {}",
+                       contactLastName, phoneCandidates);
+            return new GuestLoginResult(false,
+                "Guest not found. Please verify your last name and phone number.", null);
+        }
+
+        Guest guest = guestOpt.get();
+        logger.info("Guest authentication successful - Contact last name: {}, Guest ID: {}, Phone variants: {}",
+                   contactLastName, guest.getId(), phoneCandidates);
+        return new GuestLoginResult(true, "Authentication successful", guest);
+    }
+
+    /**
      * Guest login result wrapper class
      */
     public static class GuestLoginResult {

@@ -19,7 +19,7 @@
                 <div class="card-body">
                     <div class="alert alert-info" role="alert">
                         <strong>Event:</strong> <span th:text="${event.name}"></span><br/>
-                        <strong>Guest:</strong> <span th:text="${rsvp.guest.contactName}"></span>
+                        <strong>Guest:</strong> <span th:text="${rsvp.guest.contactFirstName} + ' ' + ${rsvp.guest.contactLastName}"></span>
                     </div>
 
                     <form th:action="@{${attendee.id == null ? '/admin/rsvps/' + rsvp.id + '/attendees/new' : '/admin/attendees/' + attendee.id + '/edit'}}" method="POST">

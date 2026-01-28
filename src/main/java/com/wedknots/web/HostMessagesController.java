@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * Controller for hosts to view and manage WhatsApp messages from guests
+ * Controller for hosts to view and manage messages from guests
  */
 @Controller
 @RequestMapping("/host")
@@ -30,7 +30,7 @@ public class HostMessagesController {
     private WeddingEventRepository weddingEventRepository;
 
     /**
-     * View all WhatsApp messages for host's events
+     * View all messages for host's events
      * Redirects to new inbox interface
      */
     @PreAuthorize("hasRole('HOST')")

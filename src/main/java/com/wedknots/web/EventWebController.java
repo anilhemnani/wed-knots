@@ -123,7 +123,20 @@ public class EventWebController {
             event.setId(id);
             event.setSubdomain(existing.getSubdomain());
 
-            weddingEventRepository.save(event);
+            // Copy all editable fields
+            existing.setName(event.getName());
+            existing.setDate(event.getDate());
+            existing.setBrideName(event.getBrideName());
+            existing.setGroomName(event.getGroomName());
+            existing.setExpectedGuestArrivalDate(event.getExpectedGuestArrivalDate());
+            existing.setExpectedGuestDepartureDate(event.getExpectedGuestDepartureDate());
+            existing.setPreferredTravelAirport(event.getPreferredTravelAirport());
+            existing.setPreferredTravelStation(event.getPreferredTravelStation());
+            existing.setPlace(event.getPlace());
+            existing.setDefaultMaxAllowedAttendees(event.getDefaultMaxAllowedAttendees());
+            existing.setAboutLocationUrl(event.getAboutLocationUrl());
+
+            weddingEventRepository.save(existing);
             redirectAttributes.addFlashAttribute("successMessage", "Event updated successfully!");
             return "redirect:/events/" + id;
         }
@@ -134,44 +147,6 @@ public class EventWebController {
     @PostMapping("/{id}/delete")
     public String deleteEvent(@PathVariable Long id) {
         weddingEventRepository.deleteById(id);
-        return "redirect:/events";
-    }
-
-    @PreAuthorize("hasAnyRole('ADMIN', 'HOST')")
-    @GetMapping("/{id}/whatsapp-config")
-    public String showWhatsAppConfig(@PathVariable Long id, Model model) {
-        Optional<WeddingEvent> eventOpt = weddingEventRepository.findById(id);
-        if (eventOpt.isPresent()) {
-            model.addAttribute("event", eventOpt.get());
-            return "whatsapp_config";
-        }
-        return "redirect:/events";
-    }
-
-    @PreAuthorize("hasAnyRole('ADMIN', 'HOST')")
-    @PostMapping("/{id}/whatsapp-config")
-    public String updateWhatsAppConfig(@PathVariable Long id,
-                                       @ModelAttribute WeddingEvent updatedEvent,
-                                       Model model,
-                                       org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
-        Optional<WeddingEvent> eventOpt = weddingEventRepository.findById(id);
-        if (eventOpt.isPresent()) {
-            WeddingEvent event = eventOpt.get();
-
-            // Update WhatsApp configuration fields
-            event.setWhatsappApiEnabled(updatedEvent.getWhatsappApiEnabled());
-            event.setWhatsappPhoneNumberId(updatedEvent.getWhatsappPhoneNumberId());
-            event.setWhatsappBusinessAccountId(updatedEvent.getWhatsappBusinessAccountId());
-            event.setWhatsappAccessToken(updatedEvent.getWhatsappAccessToken());
-            event.setWhatsappApiVersion(updatedEvent.getWhatsappApiVersion());
-            event.setWhatsappVerifyToken(updatedEvent.getWhatsappVerifyToken());
-
-            weddingEventRepository.save(event);
-
-            redirectAttributes.addFlashAttribute("successMessage",
-                "WhatsApp Cloud API configuration saved successfully!");
-            return "redirect:/events/" + id + "/whatsapp-config";
-        }
         return "redirect:/events";
     }
 }

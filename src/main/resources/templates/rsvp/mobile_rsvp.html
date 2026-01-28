@@ -1,71 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Wedding RSVP</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<head th:replace="~{_guest_mobile_shell :: head}"></head>
+<body class="bg-light">
+<th:block th:replace="~{_navbar :: guestNav}"></th:block>
+<div class="container-fluid container-mobile py-3">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            padding: 10px;
-        }
-
-        .container-mobile {
-            width: 100%;
-            max-width: 480px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-            animation: slideUp 0.5s ease-out;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(40px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-            margin: 0;
-        }
-
-        .content {
-            padding: 30px 20px;
-        }
-
         .form-group {
             margin-bottom: 20px;
         }
@@ -76,30 +15,6 @@
             font-weight: 600;
             color: #333;
             margin-bottom: 8px;
-        }
-
-        input[type="text"],
-        input[type="tel"],
-        input[type="email"],
-        select,
-        textarea {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            font-family: inherit;
-            transition: border-color 0.3s;
-        }
-
-        input[type="text"]:focus,
-        input[type="tel"]:focus,
-        input[type="email"]:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            background-color: #f8f9ff;
         }
 
         .radio-group {
@@ -182,13 +97,6 @@
 
         .error-message.show {
             display: block;
-            animation: shake 0.3s;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
         }
 
         .step {
@@ -197,33 +105,11 @@
 
         .step.active {
             display: block;
-            animation: slideUp 0.3s ease-out;
-        }
-
-        .step-indicator {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .step-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #ddd;
-        }
-
-        .step-dot.active {
-            background-color: #667eea;
-            width: 24px;
-            border-radius: 4px;
         }
 
         textarea {
             resize: vertical;
             min-height: 80px;
-            font-family: inherit;
         }
 
         .form-hint {
@@ -232,298 +118,660 @@
             margin-top: 4px;
         }
 
-        .attendee-input-group {
+        .attendee-card {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .attendee-card-header {
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
             align-items: center;
+            margin-bottom: 15px;
         }
 
-        .attendee-input-group input {
-            flex: 1;
+        .attendee-number {
+            font-weight: 600;
+            color: #0d6efd;
+            font-size: 14px;
         }
 
-        .btn-decrement,
-        .btn-increment {
-            width: 44px;
-            height: 44px;
-            padding: 0;
-            border: 2px solid #e0e0e0;
-            background: white;
-            border-radius: 8px;
-            font-size: 18px;
+        .btn-remove-attendee {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
             cursor: pointer;
+            font-weight: 500;
+        }
+
+        .attendee-card input,
+        .attendee-card select {
+            margin-bottom: 10px;
+        }
+
+        .attendee-card label {
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .edit-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
         }
 
-        .btn-decrement:active,
-        .btn-increment:active {
-            background: #f0f0f0;
+        .view-card {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .view-card h5 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .view-item {
+            margin-bottom: 10px;
+        }
+
+        .view-item strong {
+            color: #555;
+        }
+
+        .attendee-list {
+            margin-top: 10px;
+        }
+
+        .attendee-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(13, 110, 253, 0);
+            }
+        }
+
+        .animate-pulse {
+            animation: pulse 1.5s ease-in-out infinite;
         }
     </style>
-</head>
-<body>
-    <div class="container-mobile">
-        <!-- Header -->
-        <div class="header">
-            <h1>📋 RSVP</h1>
-            <p th:text="|${eventName}|">Wedding Event</p>
+
+    <!-- Page Content -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-0">📋 RSVP</h5>
+                <small th:text="${eventName}">Wedding Event</small>
+            </div>
+            <button type="button" class="btn btn-light btn-sm" onclick="goBackToDashboard()">
+                <i class="bi bi-arrow-left"></i> Back
+            </button>
         </div>
 
-        <!-- Content -->
-        <div class="content">
-            <div class="error-message" id="errorMessage"></div>
-
-            <!-- Step 1: Phone Verification -->
-            <div class="step active" id="step1">
-                <div class="step-indicator">
-                    <div class="step-dot active"></div>
-                    <div class="step-dot"></div>
-                </div>
-
-                <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 600;">Verify Your Phone Number</h3>
-
-                <form id="phoneForm" onsubmit="handlePhoneSubmit(event)">
-                    <div class="form-group">
-                        <label for="phoneNumber">Mobile Number</label>
-                        <input
-                            type="tel"
-                            id="phoneNumber"
-                            name="phoneNumber"
-                            placeholder="+447878597720"
-                            required
-                            pattern="^\+?[1-9]\d{1,14}$">
-                        <div class="form-hint">Include country code (e.g., +44 for UK)</div>
+        <div class="card-body position-relative">
+            <!-- Loading State -->
+            <div id="loadingState" class="d-flex align-items-center justify-content-center" style="min-height:120px;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
-
-                    <button type="submit" class="btn-submit">
-                        <span id="phoneSpinner" class="spinner"></span>
-                        Continue
-                    </button>
-                </form>
+                    <div class="text-muted small">Loading your RSVP...</div>
+                </div>
             </div>
 
-            <!-- Step 2: RSVP Form -->
-            <div class="step" id="step2">
-                <div class="step-indicator">
-                    <div class="step-dot active"></div>
-                    <div class="step-dot active"></div>
+            <div id="rsvpContent" class="d-none">
+                <div class="error-message" id="errorMessage"></div>
+
+                <!-- RSVP View Screen -->
+                <div class="step" id="rsvpViewScreen">
+                    <div class="view-card">
+                        <button type="button" class="edit-icon" onclick="showRsvpEdit()" title="Edit RSVP">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <h5><i class="bi bi-check-circle text-success"></i> Your RSVP</h5>
+                        <div class="view-item">
+                            <strong>Status:</strong> <span id="viewRsvpStatus" class="badge bg-success"></span>
+                        </div>
+                        <div class="view-item" id="viewAttendeesSection" style="display: none;">
+                            <strong>Attendees:</strong>
+                            <div id="viewAttendeesList" class="attendee-list"></div>
+                        </div>
+                    </div>
+
                 </div>
 
-                <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 600;" id="guestGreeting"></h3>
+                <!-- RSVP Edit Screen -->
+                <div class="step" id="rsvpEditScreen">
+                    <div style="margin-bottom: 1rem;">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="showRsvpView()">
+                            <i class="bi bi-arrow-left"></i> Back
+                        </button>
+                    </div>
 
-                <form id="rsvpForm" method="POST" th:action="|/rsvp/event/${eventId}/submit|" onsubmit="handleRsvpSubmit(event)">
-                    <input type="hidden" name="guestId" id="guestId">
+                    <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 600;" id="rsvpEditTitle">Submit
+                        RSVP</h3>
 
-                    <!-- RSVP Status -->
-                    <div class="form-group">
-                        <label style="margin-bottom: 15px;">Will you be attending?</label>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="attending" name="rsvpStatus" value="attending" required>
-                                <label for="attending">
-                                    <span>✓ Yes, I'll attend</span>
-                                </label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="notAttending" name="rsvpStatus" value="not_attending" required>
-                                <label for="notAttending">
-                                    <span>✗ Sorry, can't attend</span>
-                                </label>
+                    <form id="rsvpForm" method="POST" th:action="|/rsvp/event/${eventId}/submit|"
+                          onsubmit="handleRsvpSubmit(event)">
+                        <input type="hidden" name="guestId" id="guestId">
+
+                        <!-- RSVP Status -->
+                        <div class="form-group">
+                            <label style="margin-bottom: 15px;">Will you be attending?</label>
+                            <div class="radio-group">
+                                <div class="radio-option">
+                                    <input type="radio" id="attending" name="rsvpStatus" value="attending" required>
+                                    <label for="attending">
+                                        <span>✓ Yes, I'll attend</span>
+                                    </label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="notAttending" name="rsvpStatus" value="not_attending"
+                                           required>
+                                    <label for="notAttending">
+                                        <span>✗ Sorry, can't attend</span>
+                                    </label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="maybe" name="rsvpStatus" value="maybe" required>
+                                    <label for="maybe">
+                                        <span>? Maybe, not sure yet</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Attendee Count (shown only if attending) -->
-                    <div class="form-group" id="attendeeCountGroup" style="display: none;">
-                        <label for="attendeeCount">Number of Guests</label>
-                        <div class="attendee-input-group">
-                            <button type="button" class="btn-decrement" onclick="decrementAttendees()">−</button>
-                            <input type="number" id="attendeeCount" name="attendeeCount" value="1" min="1" max="10" readonly>
-                            <button type="button" class="btn-increment" onclick="incrementAttendees()">+</button>
+                        <!-- Attendee Details -->
+                        <div class="form-group" id="attendeeDetailsGroup" style="display: none;">
+                            <label style="margin-bottom: 15px;">Attendee Details</label>
+                            <div id="attendeesContainer"></div>
+                            <button type="button" class="btn-submit" id="addAttendeeBtn" onclick="addAttendee()"
+                                    style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); margin-top: 10px;">
+                                + Add Attendee
+                            </button>
+                            <div class="form-hint" style="margin-top: 10px;">Add all attendees who will be coming with
+                                you
+                            </div>
+                            <input type="hidden" name="attendeeCount" id="attendeeCountHidden" value="0">
                         </div>
-                    </div>
 
-                    <!-- Travel Mode (shown only if attending) -->
-                    <div class="form-group" id="travelModeGroup" style="display: none;">
-                        <label for="travelMode">How will you travel?</label>
-                        <select id="travelMode" name="travelMode">
-                            <option value="">-- Select option --</option>
-                            <option value="flight">✈️ Flight</option>
-                            <option value="train">🚂 Train</option>
-                            <option value="car">🚗 Car</option>
-                            <option value="bus">🚌 Bus</option>
-                            <option value="other">🚕 Other</option>
-                        </select>
-                    </div>
-
-                    <!-- Travel Details -->
-                    <div class="form-group" id="travelDetailsGroup" style="display: none;">
-                        <label for="travelDetails">Travel Details</label>
-                        <textarea
-                            id="travelDetails"
-                            name="travelDetails"
-                            placeholder="E.g., Flight number, arrival time, train details..."></textarea>
-                        <div class="form-hint">Optional: Add flight number, arrival time, or other relevant details</div>
-                    </div>
-
-                    <!-- Dietary Restrictions -->
-                    <div class="form-group" id="dietaryGroup" style="display: none;">
-                        <label for="dietaryRestrictions">Dietary Restrictions</label>
-                        <textarea
-                            id="dietaryRestrictions"
-                            name="dietaryRestrictions"
-                            placeholder="Any allergies or dietary requirements..."></textarea>
-                        <div class="form-hint">Optional: Let us know about any dietary needs</div>
-                    </div>
-
-                    <!-- Special Requests -->
-                    <div class="form-group" id="specialGroup" style="display: none;">
-                        <label for="specialRequests">Special Requests</label>
-                        <textarea
-                            id="specialRequests"
-                            name="specialRequests"
-                            placeholder="Any special requests or messages..."></textarea>
-                        <div class="form-hint">Optional: Share any special requests</div>
-                    </div>
-
-                    <button type="submit" class="btn-submit">
-                        <span id="rsvpSpinner" class="spinner"></span>
-                        Submit RSVP
-                    </button>
-                </form>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <span id="rsvpSpinner" class="spinner"></span>
+                            <span id="submitButtonText">Submit RSVP</span>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        const eventId = document.querySelector('[th\\:text]')?.getAttribute('th:text') || new URLSearchParams(window.location.search).get('eventId');
+<script>
+    const eventId = document.querySelector('[th\\:text]')?.getAttribute('th:text') || new URLSearchParams(window.location.search).get('eventId');
+    let maxAttendeesAllowed = 10;
+    let attendeeCount = 0;
+    let hasExistingRsvp = false;
+    let lastLoadedGuestData = null;
 
-        // Handle phone submission
-        async function handlePhoneSubmit(event) {
-            event.preventDefault();
+    // Initialize RSVP page
+    async function initializeRsvpPage() {
+        document.getElementById('loadingState').classList.remove('d-none');
+        document.getElementById('rsvpContent').classList.add('d-none');
 
-            const phoneNumber = document.getElementById('phoneNumber').value;
-            const errorDiv = document.getElementById('errorMessage');
-            const spinner = document.getElementById('phoneSpinner');
+        try {
+            const response = await fetch(`/rsvp/api/guests/current`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
 
-            // Validate format
-            if (!/^\+?[1-9]\d{1,14}$/.test(phoneNumber)) {
-                showError('Invalid phone number format. Please include country code.');
+            if (!response.ok) {
+                // Log the response details for debugging
+                console.error('API Response not OK:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    url: response.url
+                });
+
+                try {
+                    const errorData = await response.json();
+                    console.error('Error response data:', errorData);
+                } catch (e) {
+                    console.error('Could not parse error response as JSON');
+                    const errorText = await response.text();
+                    console.error('Error response text:', errorText);
+                }
+
+                // If not authenticated, redirect to login
+                if (response.status === 401) {
+                    window.location.href = '/login/guest';
+                    return;
+                }
+                throw new Error('Failed to fetch guest data');
+            }
+
+            const guestData = await response.json();
+
+            console.log('API Response - Full guestData:', guestData);
+            console.log('API Response - guestData.id:', guestData.id, 'Type:', typeof guestData.id);
+
+            // Store guest info
+            document.getElementById('guestId').value = guestData.id;
+
+            if (guestData.maxAttendees) {
+                maxAttendeesAllowed = guestData.maxAttendees;
+            }
+
+            // Check if RSVP exists
+            hasExistingRsvp = guestData.rsvpStatus ? true : false;
+
+            if (hasExistingRsvp) {
+                // Show RSVP view
+                populateRsvpView(guestData);
+                showRsvpView();
+            } else {
+                // Show RSVP edit form
+                showRsvpEdit();
+            }
+
+            document.getElementById('rsvpContent').classList.remove('d-none');
+            document.getElementById('loadingState').classList.add('d-none');
+
+        } catch (error) {
+            console.error('Error initializing:', error);
+            showError('Failed to load your information. Please try again.');
+            document.getElementById('rsvpContent').classList.remove('d-none');
+            document.getElementById('loadingState').classList.add('d-none');
+        }
+    }
+
+    // Populate RSVP view with data
+    function populateRsvpView(guestData) {
+        lastLoadedGuestData = guestData; // Store for edit prefill
+        const statusBadge = document.getElementById('viewRsvpStatus');
+        const status = (guestData.rsvpStatus || '').toLowerCase();
+        const rsvp = guestData.rsvp || {};
+        // Use status from RSVP object if present
+        const rsvpStatus = (rsvp.status || status || '').toLowerCase();
+
+        // Set RSVP status badge and attendees
+        if (["attending", "maybe"].some(s => s.toLowerCase() === rsvpStatus)) {
+            statusBadge.textContent = rsvpStatus.charAt(0).toUpperCase() + rsvpStatus.slice(1);
+            statusBadge.className = 'badge bg-success';
+            // Show attendees if present
+            if (rsvp.attendees && rsvp.attendees.length > 0) {
+                document.getElementById('viewAttendeesSection').style.display = 'block';
+                const attendeeList = document.getElementById('viewAttendeesList');
+                attendeeList.innerHTML = '';
+                rsvp.attendees.forEach(attendee => {
+                    const attendeeDiv = document.createElement('div');
+                    attendeeDiv.className = 'attendee-item';
+                    attendeeDiv.innerHTML = `
+                        <strong>${attendee.name}</strong><br>
+                        <small>📱 ${attendee.mobileNumber || 'Not provided'} | 👤 ${attendee.ageGroup}</small>
+                    `;
+                    attendeeList.appendChild(attendeeDiv);
+                });
+            } else {
+                document.getElementById('viewAttendeesSection').style.display = 'none';
+            }
+        } else if (["not_attending", "declined"].some(s => s.toLowerCase() === rsvpStatus)) {
+            statusBadge.textContent = 'Not Attending';
+            statusBadge.className = 'badge bg-danger';
+            document.getElementById('viewAttendeesSection').style.display = 'none';
+        } else {
+            // Pending or unknown
+            statusBadge.textContent = 'Pending';
+            statusBadge.className = 'badge bg-secondary';
+            document.getElementById('viewAttendeesSection').style.display = 'none';
+        }
+
+    }
+
+    // Navigation functions
+    function showRsvpView() {
+        document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+        document.getElementById('rsvpViewScreen').classList.add('active');
+    }
+
+    function showRsvpEdit() {
+        // Use last loaded guest data for prefill
+        const guestData = lastLoadedGuestData || {};
+        const rsvp = guestData.rsvp || {};
+        const savedStatus = (rsvp.status || guestData.rsvpStatus || '').toLowerCase();
+        // Clear attendee container
+        document.getElementById('attendeesContainer').innerHTML = '';
+        attendeeCount = 0;
+        updateAttendeeCount();
+        updateAddAttendeeButton();
+
+        // Set radio button for RSVP status
+        document.querySelectorAll('input[name="rsvpStatus"]').forEach(radio => {
+            radio.checked = (radio.value.toLowerCase() === savedStatus);
+        });
+
+        // Show attendee details if status is attending or maybe
+        if (["pending", "attending", "maybe"].includes(savedStatus)) {
+            document.getElementById('attendeeDetailsGroup').style.display = 'block';
+            if (rsvp.attendees && rsvp.attendees.length > 0) {
+                rsvp.attendees.forEach(att => addAttendee(att));
+            }
+        } else {
+            document.getElementById('attendeeDetailsGroup').style.display = 'none';
+        }
+
+        document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+        document.getElementById('rsvpEditScreen').classList.add('active');
+        document.getElementById('rsvpEditTitle').textContent = hasExistingRsvp ? 'Edit RSVP' : 'Submit RSVP';
+        document.getElementById('submitButtonText').textContent = hasExistingRsvp ? 'Update RSVP' : 'Submit RSVP';
+    }
+
+    function goBackToDashboard() {
+        window.location.href = '/guest/dashboard';
+    }
+
+    // RSVP status handling
+    function handleRsvpStatus(rsvpStatus, rsvpData) {
+        // Normalize status to lower case for comparison
+        const status = (rsvpStatus || '').toLowerCase();
+        // Hide all RSVP sections by default
+        document.getElementById('attendeeSection').style.display = 'none';
+        document.getElementById('notAttendingSection').style.display = 'none';
+        document.getElementById('pendingSection').style.display = 'none';
+
+        if (status === 'pending' || !status) {
+            // RSVP not submitted previously
+            document.getElementById('pendingSection').style.display = 'block';
+        } else if (status === 'not_attending' || status === 'declined') {
+            // Not attending: remove all attendees
+            clearAttendees();
+            document.getElementById('notAttendingSection').style.display = 'block';
+        } else if (status === 'attending' || status === 'accepted' || status === 'maybe') {
+            // Attending or maybe: show attendees
+            document.getElementById('attendeeSection').style.display = 'block';
+            if (rsvpData && rsvpData.attendees) {
+                populateAttendees(rsvpData.attendees);
+            }
+        } else {
+            // Unknown status: treat as pending
+            document.getElementById('pendingSection').style.display = 'block';
+        }
+    }
+
+    // RSVP form handling
+    async function handleRsvpSubmit(event) {
+        event.preventDefault();
+        const spinner = document.getElementById('rsvpSpinner');
+
+        try {
+            spinner.classList.add('show');
+
+            const rsvpStatus = document.querySelector('input[name="rsvpStatus"]:checked')?.value;
+            const guestId = document.getElementById('guestId').value;
+
+            console.log('RSVP Submit - Guest ID:', guestId, 'Type:', typeof guestId);
+            console.log('RSVP Submit - Guest ID element exists:', !!document.getElementById('guestId'));
+            console.log('RSVP Submit - Guest ID element value:', document.getElementById('guestId')?.value);
+
+            // Validate guestId
+            if (!guestId || guestId === 'undefined' || guestId === '') {
+                console.error('RSVP Submit - Invalid guestId:', guestId);
+                showError('Guest ID is missing. Please refresh the page and try again.');
                 return;
             }
 
-            try {
-                spinner.classList.add('show');
-
-                const response = await fetch(`/rsvp/event/${getEventId()}/validate-phone`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ phoneNumber })
-                });
-
-                const data = await response.json();
-
-                if (!data.success) {
-                    showError(data.message);
-                    return;
-                }
-
-                // Store guest info
-                document.getElementById('guestId').value = data.guestId;
-                document.getElementById('guestGreeting').innerText = `Hello, ${data.guestName}! 👋`;
-
-                // Show step 2
-                document.getElementById('step1').classList.remove('active');
-                document.getElementById('step2').classList.add('active');
-
-            } catch (error) {
-                console.error('Error:', error);
-                showError('An error occurred. Please try again.');
-            } finally {
-                spinner.classList.remove('show');
+            // Ensure guestId is a number
+            const guestIdNum = parseInt(guestId, 10);
+            if (isNaN(guestIdNum)) {
+                console.error('RSVP Submit - guestId is not a number:', guestId);
+                showError('Invalid guest ID. Please refresh the page and try again.');
+                return;
             }
-        }
 
-        // Handle RSVP form submission
-        async function handleRsvpSubmit(event) {
-            event.preventDefault();
-
-            const form = document.getElementById('rsvpForm');
-            const spinner = document.getElementById('rsvpSpinner');
-
-            try {
-                spinner.classList.add('show');
-
-                const formData = new FormData(form);
-                const response = await fetch(form.action, {
-                    method: 'POST',
-                    body: formData
+            let attendees = [];
+            if (rsvpStatus && rsvpStatus.toLowerCase() === 'attending') {
+                const attendeeCards = document.querySelectorAll('.attendee-card');
+                attendeeCards.forEach(card => {
+                    const name = card.querySelector('input[name="attendeeName"]').value;
+                    const mobileNumber = card.querySelector('input[name="attendeeMobile"]').value;
+                    const ageGroup = card.querySelector('select[name="attendeeAgeGroup"]').value;
+                    attendees.push({ name, mobileNumber, ageGroup });
                 });
+            }
 
-                if (response.ok) {
-                    // Redirect to success page
-                    window.location.href = response.url;
-                } else {
+            const requestData = {
+                guestId, rsvpStatus, attendees, attendeeCount: attendees.length
+            };
+
+            console.log('RSVP Submit - Request Data:', requestData);
+            console.log('RSVP Submit - Event ID:', getEventId());
+            console.log('RSVP Submit - Submit URL:', `/rsvp/event/${getEventId()}/submit`);
+
+            const response = await fetch(`/rsvp/event/${getEventId()}/submit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
+
+            console.log('RSVP Submit - Response Status:', response.status);
+            console.log('RSVP Submit - Response OK:', response.ok);
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('RSVP Submit - Success Response:', result);
+                // Refresh guest data and show view
+                await refreshGuestData();
+                showRsvpView();
+
+            } else {
+                console.error('RSVP Submit - Response not OK');
+                try {
+                    const errorData = await response.json();
+                    console.error('RSVP Submit - Error Response Data:', errorData);
+                    showError(errorData.error || 'Failed to submit RSVP. Please try again.');
+                } catch (e) {
+                    console.error('RSVP Submit - Could not parse error response');
+                    const errorText = await response.text();
+                    console.error('RSVP Submit - Error Response Text:', errorText);
                     showError('Failed to submit RSVP. Please try again.');
                 }
-
-            } catch (error) {
-                console.error('Error:', error);
-                showError('An error occurred. Please try again.');
-            } finally {
-                spinner.classList.remove('show');
             }
+
+        } catch (error) {
+            console.error('RSVP Submit - Exception:', error);
+            showError('An error occurred. Please try again.');
+        } finally {
+            spinner.classList.remove('show');
         }
+    }
 
-        // Show error message
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.innerText = message;
-            errorDiv.classList.add('show');
 
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                errorDiv.classList.remove('show');
-            }, 5000);
-        }
-
-        // Toggle form fields based on RSVP status
-        document.querySelectorAll('input[name="rsvpStatus"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                const isAttending = this.value === 'attending';
-                document.getElementById('attendeeCountGroup').style.display = isAttending ? 'block' : 'none';
-                document.getElementById('travelModeGroup').style.display = isAttending ? 'block' : 'none';
-                document.getElementById('travelDetailsGroup').style.display = isAttending ? 'block' : 'none';
-                document.getElementById('dietaryGroup').style.display = isAttending ? 'block' : 'none';
-                document.getElementById('specialGroup').style.display = 'block';
+    // Refresh guest data after updates
+    async function refreshGuestData() {
+        try {
+            const response = await fetch(`/rsvp/api/guests/current`, {
+                method: 'GET', headers: { 'Content-Type': 'application/json' }
             });
+            if (response.ok) {
+                const guestData = await response.json();
+                hasExistingRsvp = guestData.rsvpStatus ? true : false;
+                populateRsvpView(guestData);
+            }
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+        }
+    }
+
+    // Attendee management functions
+    function addAttendee(attendeeData = null) {
+        if (attendeeCount >= maxAttendeesAllowed) {
+            showError('Maximum number of attendees reached for your invitation.');
+            updateAddAttendeeButton();
+            return;
+        }
+
+        attendeeCount++;
+        const container = document.getElementById('attendeesContainer');
+        const attendeeCard = document.createElement('div');
+        attendeeCard.className = 'attendee-card';
+        attendeeCard.setAttribute('data-attendee-index', attendeeCount - 1);
+
+        attendeeCard.innerHTML = `
+            <div class="attendee-card-header">
+                <span class="attendee-number">Attendee ${attendeeCount}</span>
+                <button type="button" class="btn-remove-attendee" onclick="removeAttendee(this)">Remove</button>
+            </div>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" name="attendeeName" class="form-control"
+                       value="${attendeeData ? attendeeData.name : ''}" required>
+            </div>
+            <div class="form-group">
+                <label>Mobile Number</label>
+                <input type="tel" name="attendeeMobile" class="form-control"
+                       value="${attendeeData ? attendeeData.mobile : ''}" placeholder="+44 1234 567890">
+            </div>
+            <div class="form-group">
+                <label>Age Group</label>
+                <select name="attendeeAgeGroup" class="form-control" required>
+                    <option value="Adult" ${attendeeData && attendeeData.ageGroup === 'Adult' ? 'selected' : ''}>Adult</option>
+                    <option value="Child" ${attendeeData && attendeeData.ageGroup === 'Child' ? 'selected' : ''}>Child (6-12)</option>
+                    <option value="Infant" ${attendeeData && attendeeData.ageGroup === 'Infant' ? 'selected' : ''}>Infant (0-5)</option>
+                </select>
+            </div>
+        `;
+        container.appendChild(attendeeCard);
+
+        updateAttendeeCount();
+        updateAddAttendeeButton();
+    }
+
+    function removeAttendee(button) {
+        const card = button.closest('.attendee-card');
+        card.remove();
+        attendeeCount--;
+        renumberAttendees();
+        updateAttendeeCount();
+        updateAddAttendeeButton();
+    }
+
+    function renumberAttendees() {
+        const cards = document.querySelectorAll('.attendee-card');
+        cards.forEach((card, index) => {
+            card.setAttribute('data-attendee-index', index);
+            const numberSpan = card.querySelector('.attendee-number');
+            numberSpan.textContent = `Attendee ${index + 1}`;
         });
+    }
 
-        // Attendee count increment/decrement
-        function incrementAttendees() {
-            const input = document.getElementById('attendeeCount');
-            if (parseInt(input.value) < 10) {
-                input.value = parseInt(input.value) + 1;
-            }
-        }
+    function updateAttendeeCount() {
+        document.getElementById('attendeeCountHidden').value = attendeeCount;
+    }
 
-        function decrementAttendees() {
-            const input = document.getElementById('attendeeCount');
-            if (parseInt(input.value) > 1) {
-                input.value = parseInt(input.value) - 1;
-            }
-        }
+    function updateAddAttendeeButton() {
+        const addBtn = document.getElementById('addAttendeeBtn');
+        if (!addBtn) return;
 
-        // Get event ID from URL
-        function getEventId() {
-            const pathArray = window.location.pathname.split('/');
-            return pathArray[pathArray.length - 1];
+        if (attendeeCount >= maxAttendeesAllowed) {
+            addBtn.style.display = 'none';
+        } else {
+            addBtn.style.display = 'inline-block'; // Use inline-block for button
         }
-    </script>
+    }
+
+    // Show/hide Add Attendee button based on RSVP status and pending state
+    function updateAttendeeButtonVisibility() {
+        const rsvpStatus = document.querySelector('input[name="rsvpStatus"]:checked');
+        const addAttendeeBtn = document.getElementById('addAttendeeBtn');
+        let isPending = true;
+        if (typeof lastLoadedGuestData === 'object' && lastLoadedGuestData !== null) {
+            const status = (lastLoadedGuestData.rsvpStatus || '').toLowerCase();
+            const rsvp = lastLoadedGuestData.rsvp || {};
+            const savedStatus = (rsvp.status || status || '').toLowerCase();
+            isPending = !savedStatus || savedStatus === 'pending';
+        }
+        if (!rsvpStatus || rsvpStatus.value.toLowerCase() === 'not_attending') {
+            addAttendeeBtn.style.display = 'none';
+        } else if (
+            (rsvpStatus.value.toLowerCase() === 'attending' || rsvpStatus.value.toLowerCase() === 'maybe') &&
+            (isPending || !hasExistingRsvp)
+        ) {
+            addAttendeeBtn.style.display = 'inline-block'; // Use inline-block for button
+        } else {
+            addAttendeeBtn.style.display = 'none';
+        }
+    }
+
+    // Attach event listeners to RSVP radio buttons
+    //const rsvpRadios = document.querySelectorAll('input[name="rsvpStatus"]');
+    //rsvpRadios.forEach(radio => {
+      //  radio.addEventListener('change', updateAttendeeButtonVisibility);
+    //});
+
+    // Initial call to set button visibility on page load
+//        updateAttendeeButtonVisibility();
+
+    // Event listeners
+    document.querySelectorAll('input[name="rsvpStatus"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const val = this.value.toLowerCase();
+            const show = (val === 'attending' || val === 'maybe');
+            document.getElementById('attendeeDetailsGroup').style.display = show ? 'block' : 'none';
+            updateAttendeeButtonVisibility();
+            updateAddAttendeeButton();
+        });
+    });
+
+    function showError(message) {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.innerText = message;
+        errorDiv.classList.add('show');
+        setTimeout(() => errorDiv.classList.remove('show'), 5000);
+    }
+
+    function getEventId() {
+        const pathArray = window.location.pathname.split('/');
+        return pathArray[pathArray.length - 1];
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeRsvpPage();
+    });
+</script>
 </body>
 </html>
+
+
 

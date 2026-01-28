@@ -37,9 +37,6 @@ public class InvitationLog {
     @Builder.Default
     private String deliveryStatus = "PENDING"; // PENDING, SENT, DELIVERED, FAILED
 
-    @Column(name = "whatsapp_number")
-    private String whatsappNumber; // Phone number used for sending
-
     @Column(name = "error_message")
     private String errorMessage; // If delivery failed
 
@@ -48,18 +45,10 @@ public class InvitationLog {
 
     @Column(name = "invitation_method")
     @Builder.Default
-    private String invitationMethod = "WHATSAPP"; // WHATSAPP or EXTERNAL (email, phone call, in-person, etc.)
+    private String invitationMethod = "EMAIL"; // EMAIL, SMS, IN_PERSON, etc.
 
     @Column(name = "external_method_description")
-    private String externalMethodDescription; // Description of how external invitation was sent (e.g., "Email", "Phone Call", "In-person")
-
-    @Column(name = "whatsapp_message_text", columnDefinition = "TEXT")
-    private String whatsappMessageText; // Stored WhatsApp message body actually sent
-
-    // Track which phone numbers of the guest received this invitation
-    @OneToMany(mappedBy = "invitationLog", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Builder.Default
-    private java.util.List<InvitationPhoneRecord> phoneRecords = new java.util.ArrayList<>();
+    private String externalMethodDescription; // Description of how invitation was sent
 
     @PrePersist
     protected void onCreate() {

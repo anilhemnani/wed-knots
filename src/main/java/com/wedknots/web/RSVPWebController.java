@@ -109,7 +109,7 @@ public class RSVPWebController {
 
         // Validate status
         try {
-            RSVPStatus rsvpStatus = RSVPStatus.valueOf(status.toUpperCase());
+            RSVPStatus rsvpStatus = RSVPStatus.fromString(status);
             RSVP rsvp = rsvpOpt.get();
             RSVPStatus oldStatus = rsvp.getStatus();
             rsvp.setStatus(rsvpStatus);
@@ -128,7 +128,7 @@ public class RSVPWebController {
      */
     private boolean isValidRSVPStatus(String status) {
         try {
-            RSVPStatus.valueOf(status.toUpperCase());
+            RSVPStatus.fromString(status.toUpperCase());
             return true;
         } catch (IllegalArgumentException e) {
             return false;

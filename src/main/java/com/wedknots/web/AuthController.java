@@ -176,33 +176,33 @@ public class AuthController {
 
     @PostMapping("/login/guest")
     public String guestLoginPost(HttpServletRequest request, Model model) {
-        String lastName = request.getParameter("lastname");
+        String contactLastName = request.getParameter("contactLastName");
         String mobile = request.getParameter("mobile");
-        String status = userService.validateGuestLogin(lastName, mobile);
+        String status = userService.validateGuestLogin(contactLastName, mobile);
         if ("GUEST_NOT_FOUND".equals(status)) {
-            model.addAttribute("loginError", "Guest not found. Please check your family name and mobile number. " +
-                    "You can use any of your registered phone numbers to login.");
+            model.addAttribute("loginError", "Guest not found. Please check your contact last name and phone number. " +
+                    "You can use any of your registered phone numbers (with or without country code) to login.");
             return "login_guest";
         }
 
-        // Authenticate the guest using the new multi-phone system
-        Optional<Guest> guestOpt = userService.getGuestForAuthentication(lastName, mobile);
+        // Authenticate the guest using the multi-phone system
+        Optional<Guest> guestOpt = userService.getGuestForAuthentication(contactLastName, mobile);
         if (guestOpt.isPresent()) {
             Guest guest = guestOpt.get();
-            // Create authentication principal using guest ID and family name
-            // This allows login with any phone number
             Authentication auth = new UsernamePasswordAuthenticationToken(
-                guest.getFamilyName() + "_" + guest.getId(),  // Include guest ID for uniqueness
-                null,
+                guest.getPrimaryPhoneNumber(),
+                guest.getContactLastName(),
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_GUEST"))
             );
             SecurityContextHolder.getContext().setAuthentication(auth);
 
             // Save authentication to session
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
-            // Also store guest ID for easy access in controllers
+            // Store guest ID for controllers to resolve invitations consistently
             request.getSession().setAttribute("guestId", guest.getId());
-            request.getSession().setAttribute("guestName", guest.getContactName());
+            String guestName = (guest.getContactFirstName() != null ? guest.getContactFirstName() : "") +
+                              " " + (guest.getContactLastName() != null ? guest.getContactLastName() : "");
+            request.getSession().setAttribute("guestName", guestName.trim());
             request.getSession().setAttribute("guestFamilyName", guest.getFamilyName());
 
             logger.info("Guest {} (ID: {}) authenticated successfully using phone: {}",

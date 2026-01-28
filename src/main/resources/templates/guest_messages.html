@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{_guest_mobile_shell :: head}"></head>
+<body class="bg-light">
+<th:block th:replace="~{_navbar :: guestNav}"></th:block>
+<div class="container-fluid container-mobile py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="fs-5 mb-0">Messages</h2>
+        <a href="/invitations" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i></a>
+    </div>
+
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+    <div th:if="${event}" class="card shadow-sm border-0 mb-3">
+        <div class="card-body py-3">
+            <div class="fw-semibold" th:text="${event.name}">Event</div>
+            <div class="text-muted small" th:text="${guest.contactFirstName} + ' ' + ${guest.contactLastName}"></div>
+        </div>
+    </div>
+
+    <div th:if="${messages}" class="card shadow-sm border-0 mb-3">
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                <div th:each="msg : ${messages}" class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong th:text="${msg.direction.name() == 'OUTBOUND' ? 'You' : 'Host'}"></strong>
+                            <div th:text="${msg.messageContent}"></div>
+                        </div>
+                        <small class="text-muted" th:text="${#temporals.format(msg.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${event}" class="card shadow-sm border-0">
+        <div class="card-body">
+            <form id="guestMessageForm">
+                <div class="mb-3">
+                    <label class="form-label">Reply</label>
+                    <textarea class="form-control" name="message" rows="3" required
+                              placeholder="Type your message to the hosts..."></textarea>
+                </div>
+                <input type="hidden" name="guestId" th:value="${guest.id}" />
+                <input type="hidden" name="eventId" th:value="${event.id}" />
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-send"></i> Send
+                </button>
+            </form>
+            <script>
+                document.getElementById('guestMessageForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const form = e.target;
+                    const messageContent = form.message.value;
+                    const guestId = form.guestId.value;
+                    const eventId = form.eventId.value;
+                    const resp = await fetch('/api/messages/send-to-host', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ eventId, guestId, messageContent })
+                    });
+                    if (resp.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('Failed to send message');
+                    }
+                });
+            </script>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

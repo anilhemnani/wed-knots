@@ -66,7 +66,7 @@
                     <tbody>
                         <tr th:each="travelInfo : ${travelInfoList}">
                             <td>
-                                <strong th:text="${travelInfo.guest.contactName}">Guest Name</strong>
+                                <strong th:text="${travelInfo.guest.contactFirstName} + ' ' + ${travelInfo.guest.contactLastName}">Guest Name</strong>
                                 <br>
                                 <small class="text-muted" th:text="${travelInfo.guest.familyName}">Family</small>
                             </td>

@@ -39,7 +39,7 @@
             <h1>RSVP Details</h1>
             <p class="text-muted">
                 <strong>Event:</strong> <span th:text="${event.name}"></span><br/>
-                <strong>Guest:</strong> <span th:text="${guest.contactName}"></span>
+                <strong>Guest:</strong> <span th:text="${guest.contactFirstName} + ' ' + ${guest.contactLastName}"></span>
                 (<span th:text="${guest.familyName}"></span>)
             </p>
         </div>

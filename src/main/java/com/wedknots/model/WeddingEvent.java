@@ -46,8 +46,6 @@ public class WeddingEvent {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate date;
 
-    private String status;
-
     @Column(name = "bride_name")
     private String brideName;
 
@@ -71,37 +69,13 @@ public class WeddingEvent {
     @Column(name = "preferred_travel_station")
     private String preferredTravelStation;
 
-    @Column(name = "preferred_expected_attendees")
-    private Integer preferredExpectedAttendees;
-
     private String place;
 
-    @Column(name = "expected_max_attendees")
-    private Integer expectedMaxAttendees;
+    @Column(name = "default_max_allowed_attendees")
+    private Integer defaultMaxAllowedAttendees;
 
-    @Column(name = "expected_attendees")
-    private Integer expectedAttendees;
-
-    // WhatsApp Cloud API Configuration
-    @Column(name = "whatsapp_api_enabled")
-    @Builder.Default
-    private Boolean whatsappApiEnabled = false;
-
-    @Column(name = "whatsapp_phone_number_id")
-    private String whatsappPhoneNumberId;
-
-    @Column(name = "whatsapp_business_account_id")
-    private String whatsappBusinessAccountId;
-
-    @Column(name = "whatsapp_access_token")
-    private String whatsappAccessToken;
-
-    @Column(name = "whatsapp_api_version")
-    @Builder.Default
-    private String whatsappApiVersion = "v24.0";
-
-    @Column(name = "whatsapp_verify_token")
-    private String whatsappVerifyToken;
+    @Column(name = "about_location_url", length = 255)
+    private String aboutLocationUrl; // Relative URL for location info page
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

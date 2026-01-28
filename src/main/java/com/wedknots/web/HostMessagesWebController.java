@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 /**
- * Host web controller for WhatsApp message management UI (new inbox interface)
+ * Host web controller for message management UI (new inbox interface)
  */
 @Controller
 @RequestMapping("/host/messages")

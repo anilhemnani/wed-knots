@@ -1,15 +1,12 @@
 package com.wedknots.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 /**
- * Entity to store WhatsApp messages exchanged between guests and hosts
+ * Entity to store guest messages exchanged between guests and hosts
  * Handles both inbound messages from guests and outbound messages to guests
  */
 @Data
@@ -35,6 +32,7 @@ public class GuestMessage {
     // Reference to the guest (sender of the message)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "guest_id", nullable = false)
+    @ToString.Exclude
     private Guest guest;
 
     // Phone number of the guest (stored for reference, can be matched with guest later)
@@ -65,9 +63,6 @@ public class GuestMessage {
     @Builder.Default
     private boolean isRead = false;
 
-    // WhatsApp message ID (from Meta API)
-    @Column(name = "whatsapp_message_id")
-    private String whatsappMessageId;
 
     // Message status: PENDING, SENT, DELIVERED, READ, FAILED
     @Column(name = "status", nullable = false)
@@ -139,7 +134,7 @@ public class GuestMessage {
     // Enum for message status
     public enum MessageStatus {
         PENDING,    // Message created but not yet processed
-        SENT,       // Message sent via WhatsApp
+        SENT,       // Message sent to recipient
         DELIVERED,  // Message delivered to recipient
         READ,       // Message read by recipient
         FAILED      // Message failed to send/receive

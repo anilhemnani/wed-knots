@@ -38,12 +38,12 @@
                     </div>
 
                     <form th:action="@{${invitation.id == null ? '/events/' + event.id + '/invitations/new' : '/events/' + event.id + '/invitations/' + invitation.id + '/edit'}}"
-                          th:object="${invitation}" method="POST" enctype="multipart/form-data">
+                          th:object="${invitation}" method="POST" id="invitationForm" enctype="multipart/form-data">
 
                         <div class="mb-3">
                             <label for="title" class="form-label">Invitation Title <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="title" th:field="*{title}"
-                                   placeholder="e.g., Save the Date - Ravi & Meera Wedding" required>
+                                   placeholder="e.g., Save the Date - Our Wedding" required>
                             <div class="form-text">A brief title for this invitation</div>
                         </div>
 
@@ -58,111 +58,143 @@
                             </select>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Message Type <span class="text-danger">*</span></label>
-                            <div class="btn-group w-100" role="group">
-                                <input type="radio" class="btn-check" id="messageTypePlain"
-                                       th:field="*{messageType}" value="PLAIN_TEXT"
-                                       onchange="toggleTemplateFields()">
-                                <label class="btn btn-outline-primary" for="messageTypePlain">
-                                    <i class="bi bi-chat-left-text"></i> Plain Text Message
-                                </label>
-
-                                <input type="radio" class="btn-check" id="messageTypeTemplate"
-                                       th:field="*{messageType}" value="TEMPLATE"
-                                       onchange="toggleTemplateFields()">
-                                <label class="btn btn-outline-primary" for="messageTypeTemplate">
-                                    <i class="bi bi-envelope-check"></i> WhatsApp Template
-                                </label>
+                        <!-- Delivery Method Selection -->
+                        <div class="mb-4">
+                            <label class="form-label">Delivery Method <span class="text-danger">*</span></label>
+                            <div th:if="${deliveryOptions != null && !deliveryOptions.isEmpty()}" class="delivery-options">
+                                <div th:each="option : ${deliveryOptions}" class="form-check mb-2 p-3 border rounded">
+                                    <input class="form-check-input" type="radio"
+                                           th:id="${'delivery-' + option.code}"
+                                           name="deliveryMethod"
+                                           th:value="${option.code}"
+                                           th:checked="${invitation.deliveryMethod == option.code}"
+                                           onchange="showDeliveryFields(this.value)" required>
+                                    <label class="form-check-label" th:for="${'delivery-' + option.code}">
+                                        <i th:class="${option.icon}"></i>
+                                        <strong th:text="${option.name}"></strong>
+                                        <small class="text-muted d-block" th:text="${option.description}"></small>
+                                    </label>
+                                </div>
                             </div>
-                            <div class="form-text">Choose between sending a plain text message or a pre-approved WhatsApp template</div>
+                            <div th:if="${deliveryOptions == null || deliveryOptions.isEmpty()}" class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <strong>No delivery methods enabled.</strong> Please configure at least one delivery method in application settings.
+                            </div>
                         </div>
 
-                        <!-- Template Fields - Only show when TEMPLATE is selected -->
-                        <div id="templateFields" style="display: none;" class="card bg-light mb-3">
-                            <div class="card-body">
-                                <h6 class="card-title"><i class="bi bi-diagram-3"></i> Template Configuration</h6>
+                        <!-- Email-Specific Fields -->
+                        <div id="email-fields" class="delivery-fields" style="display: none;">
+                            <div class="card bg-light mb-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="bi bi-envelope"></i> Email Content</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="emailSubject" class="form-label">Subject <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="emailSubject"
+                                               name="emailSubject" th:value="${invitation.emailSubject}"
+                                               placeholder="You're Invited to Our Wedding!">
+                                    </div>
 
-                                <div class="mb-3">
-                                    <label for="templateName" class="form-label">Select WhatsApp Template <span class="text-danger" id="templateNameRequired" style="display: none;">*</span></label>
-                                    <div id="templateDropdownContainer">
-                                        <select class="form-select" id="templateName" th:field="*{templateName}" onchange="updateTemplatePreview()">
-                                            <option value="">-- Loading Templates --</option>
+                                    <div class="mb-3">
+                                        <label for="emailBody" class="form-label">Body <span class="text-danger">*</span></label>
+                                        <textarea class="form-control" id="emailBody" name="emailBody"
+                                                  rows="8" th:text="${invitation.emailBody}"
+                                                  placeholder="Dear {{guest_name}},&#10;&#10;We cordially invite you to celebrate our wedding..."></textarea>
+                                        <div class="form-text">
+                                            Variables: <code>{{guest_name}}</code>, <code>{{event_name}}</code>, <code>{{event_date}}</code>, <code>{{event_location}}</code>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="emailImage" class="form-label">Inline Image</label>
+                                        <input type="file" class="form-control" id="emailImage" name="imageFile"
+                                               accept="image/*" onchange="previewEmailImage(this)">
+                                        <div class="form-text">Image will be embedded in email body</div>
+                                        <div id="emailImagePreview" class="mt-2"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SMS-Specific Fields -->
+                        <div id="sms-fields" class="delivery-fields" style="display: none;">
+                            <div class="card bg-light mb-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="bi bi-phone"></i> SMS Content</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="smsText" class="form-label">Message Text <span class="text-danger">*</span></label>
+                                        <textarea class="form-control" id="smsText" name="smsText"
+                                                  rows="4" th:text="${invitation.smsText}"
+                                                  maxlength="160" oninput="updateSMSCount(this)"
+                                                  placeholder="You're invited! Save the date for our wedding..."></textarea>
+                                        <div class="form-text">
+                                            <span id="smsCharCount">0</span>/160 characters
+                                            <span class="ms-2">Variables: <code>{{guest_name}}</code>, <code>{{event_date}}</code></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- WhatsApp-Specific Fields -->
+                        <div id="whatsapp-fields" class="delivery-fields" style="display: none;">
+                            <div class="card bg-light mb-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="bi bi-whatsapp"></i> WhatsApp Message</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="whatsappText" class="form-label">Message <span class="text-danger">*</span></label>
+                                        <textarea class="form-control" id="whatsappText" name="whatsappText"
+                                                  rows="6" th:text="${invitation.whatsappText}"
+                                                  placeholder="*Wedding Invitation*&#10;&#10;Dear {{guest_name}},&#10;&#10;You're invited to our wedding..."></textarea>
+                                        <div class="form-text">
+                                            Formatting: <code>*bold*</code>, <code>_italic_</code>, <code>~strikethrough~</code>
+                                            <br>Variables: <code>{{guest_name}}</code>, <code>{{event_name}}</code>, <code>{{event_date}}</code>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="whatsappMediaType" class="form-label">Media Type</label>
+                                        <select class="form-select" id="whatsappMediaType" name="whatsappMediaType"
+                                                th:value="${invitation.whatsappMediaType}"
+                                                onchange="toggleWhatsAppMedia(this.value)">
+                                            <option value="">None</option>
+                                            <option value="image">Image</option>
+                                            <option value="video">Video</option>
+                                            <option value="document">Document</option>
                                         </select>
-                                        <div class="form-text">Available WhatsApp templates from your Meta Business account</div>
                                     </div>
-                                    <div id="noTemplatesMessage" style="display: none;" class="alert alert-warning mb-0">
-                                        <i class="bi bi-exclamation-triangle"></i>
-                                        <strong>No templates available.</strong> Make sure WhatsApp API is configured in Event settings and templates are approved in Meta Business Manager.
-                                    </div>
-                                </div>
 
-                                <!-- Template Preview Card -->
-                                <div id="templatePreviewCard" style="display: none;" class="alert alert-info p-3 mb-3">
-                                    <h6 id="templatePreviewName" class="mb-2"><i class="bi bi-file-earmark-text"></i> Template Preview</h6>
-                                    <div class="border-start border-info ps-3 mb-2">
-                                        <small id="templatePreviewHeader" class="d-block fw-bold text-muted mb-2"></small>
-                                        <small id="templatePreviewBody" class="d-block text-muted mb-2" style="white-space: pre-wrap;"></small>
-                                        <small id="templatePreviewFooter" class="d-block text-muted" style="font-size: 0.85rem;"></small>
+                                    <div id="whatsappMediaUpload" style="display: none;">
+                                        <div class="mb-3">
+                                            <label for="whatsappMedia" class="form-label">Upload Media</label>
+                                            <input type="file" class="form-control" id="whatsappMedia"
+                                                   accept="image/*,video/*,.pdf,.doc,.docx"
+                                                   onchange="previewWhatsAppMedia(this)">
+                                            <div id="whatsappMediaPreview" class="mt-2"></div>
+                                        </div>
                                     </div>
-                                    <div class="alert alert-sm alert-light mb-0 mt-2">
-                                        <small>
-                                            <span class="badge bg-secondary" id="templateCategory">UTILITY</span>
-                                            <span class="badge bg-info" id="templateLanguageTag">en</span>
-                                            <span class="badge bg-success" id="templateStatus">APPROVED</span>
-                                        </small>
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="templateLanguage" class="form-label">Template Language</label>
-                                    <input type="text" class="form-control" id="templateLanguage" th:field="*{templateLanguage}"
-                                           readonly placeholder="Auto-detected from template">
-                                    <div class="form-text">Language code is automatically detected from the selected template</div>
-                                </div>
-
-                                <div class="alert alert-info mb-0" role="alert">
-                                    <i class="bi bi-info-circle"></i>
-                                    <strong>Note:</strong> Templates must be created and approved in your Meta Business account before use.
                                 </div>
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="message" class="form-label">
-                                Message <span class="text-danger" id="messageRequired">*</span>
-                            </label>
-                            <textarea class="form-control" id="message" th:field="*{message}" rows="8"
-                                      placeholder="Dear Guest,
-
-We are delighted to invite you to celebrate the wedding of Ravi & Meera!
-
-Date: January 15, 2026
-Venue: The Grand Hotel, Mumbai
-
-We look forward to your presence on this joyous occasion!
-
-RSVP: Please confirm your attendance by clicking the link below."></textarea>
-                            <div class="form-text">
-                                <span id="messageHelpPlain">The message that will be sent to guests via WhatsApp</span>
-                                <span id="messageHelpTemplate" style="display: none;">
-                                    <i class="bi bi-info-circle text-info"></i> <strong>Auto-populated from selected template.</strong>
-                                    You can edit this message if needed before saving.
-                                </span>
+                        <!-- External Fields -->
+                        <div id="external-fields" class="delivery-fields" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>External Delivery:</strong> Invitation will be marked for manual/external delivery.
+                                Fill in the message details for reference.
                             </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="imageUrl" class="form-label">Image/Card URL (Optional)</label>
-                            <input type="url" class="form-control" id="imageUrl" th:field="*{imageUrl}"
-                                   placeholder="https://example.com/invitation-card.jpg">
-                            <div class="form-text">Provide a URL or upload an image below.</div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="imageFile" class="form-label">Upload Image (Optional)</label>
-                            <input type="file" class="form-control" id="imageFile" name="imageFile" accept="image/*">
-                            <div class="form-text">If you upload a file, it will be used instead of the URL above.</div>
+                            <div class="mb-3">
+                                <label for="message" class="form-label">Message/Notes</label>
+                                <textarea class="form-control" id="message" name="message"
+                                          rows="4" th:text="${invitation.message}"
+                                          placeholder="Notes about external delivery..."></textarea>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -173,17 +205,6 @@ RSVP: Please confirm your attendance by clicking the link below."></textarea>
                                 <option value="ARCHIVED">Archived</option>
                             </select>
                             <div class="form-text">Draft invitations can be edited before sending</div>
-                        </div>
-
-                        <div class="card bg-light mb-3">
-                            <div class="card-body">
-                                <h6 class="card-title"><i class="bi bi-eye"></i> Preview</h6>
-                                <div class="border p-3 bg-white rounded">
-                                    <strong id="previewTitle">Invitation Title</strong>
-                                    <hr>
-                                    <pre id="previewMessage" class="mb-0" style="white-space: pre-wrap; font-family: inherit;">Message preview will appear here...</pre>
-                                </div>
-                            </div>
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
@@ -202,259 +223,143 @@ RSVP: Please confirm your attendance by clicking the link below."></textarea>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script th:inline="javascript">
-    // Store available templates globally for access in functions
-    let allTemplates = [];
+<script>
+    function showDeliveryFields(deliveryMethod) {
+        // Hide all delivery-specific fields
+        document.querySelectorAll('.delivery-fields').forEach(el => el.style.display = 'none');
 
-    // Live preview
+        // Show selected method's fields
+        if (deliveryMethod === 'email') {
+            document.getElementById('email-fields').style.display = 'block';
+        } else if (deliveryMethod === 'sms') {
+            document.getElementById('sms-fields').style.display = 'block';
+        } else if (deliveryMethod && deliveryMethod.startsWith('whatsapp')) {
+            document.getElementById('whatsapp-fields').style.display = 'block';
+        } else if (deliveryMethod === 'external') {
+            document.getElementById('external-fields').style.display = 'block';
+        }
+    }
+
+    function updateSMSCount(textarea) {
+        document.getElementById('smsCharCount').textContent = textarea.value.length;
+    }
+
+    function toggleWhatsAppMedia(mediaType) {
+        const uploadDiv = document.getElementById('whatsappMediaUpload');
+        uploadDiv.style.display = mediaType ? 'block' : 'none';
+    }
+
+    function previewEmailImage(input) {
+        const preview = document.getElementById('emailImagePreview');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.innerHTML = '<img src="' + e.target.result + '" class="img-thumbnail" style="max-width: 300px;">';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function previewWhatsAppMedia(input) {
+        const preview = document.getElementById('whatsappMediaPreview');
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (file.type.startsWith('image/')) {
+                    preview.innerHTML = '<img src="' + e.target.result + '" class="img-thumbnail" style="max-width: 200px;">';
+                } else {
+                    preview.innerHTML = '<div class="alert alert-success"><i class="bi bi-file-earmark"></i> ' + file.name + '</div>';
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Call on page load to show correct fields
     document.addEventListener('DOMContentLoaded', function() {
-        const titleInput = document.getElementById('title');
-        const messageInput = document.getElementById('message');
-        const previewTitle = document.getElementById('previewTitle');
-        const previewMessage = document.getElementById('previewMessage');
-
-        function updatePreview() {
-            previewTitle.textContent = titleInput.value || 'Invitation Title';
-            previewMessage.textContent = messageInput.value || 'Message preview will appear here...';
+        const selectedMethod = document.querySelector('input[name="deliveryMethod"]:checked');
+        if (selectedMethod) {
+            showDeliveryFields(selectedMethod.value);
         }
 
-        titleInput.addEventListener('input', updatePreview);
-        messageInput.addEventListener('input', updatePreview);
+        // Update SMS character count if editing
+        const smsText = document.getElementById('smsText');
+        if (smsText && smsText.value) {
+            updateSMSCount(smsText);
+        }
 
-        // Initial preview
-        updatePreview();
+        // Show WhatsApp media upload if type is selected
+        const mediaType = document.getElementById('whatsappMediaType');
+        if (mediaType && mediaType.value) {
+            toggleWhatsAppMedia(mediaType.value);
+        }
 
-        // Initialize template fields visibility and populate templates
-        toggleTemplateFields();
-        populateTemplateDropdown();
+        // Update form encoding based on delivery method
+        updateFormEncoding();
     });
 
-    // Populate template dropdown from available templates
-    function populateTemplateDropdown() {
-        /*<![CDATA[*/
-        const availableTemplates = [[${availableTemplates}]];
-        /*]]>*/
-        const templateSelect = document.getElementById('templateName');
-        const dropdownContainer = document.getElementById('templateDropdownContainer');
-        const noTemplatesMessage = document.getElementById('noTemplatesMessage');
+    function updateFormEncoding() {
+        const form = document.getElementById('invitationForm');
+        const selectedMethod = document.querySelector('input[name="deliveryMethod"]:checked');
 
-        // Store templates globally
-        allTemplates = availableTemplates || [];
+        if (selectedMethod) {
+            const method = selectedMethod.value;
 
-        console.log('Available Templates:', availableTemplates);
-        console.log('Templates count:', allTemplates.length);
-
-        // Clear existing options except the placeholder
-        templateSelect.innerHTML = '';
-
-        if (allTemplates && allTemplates.length > 0) {
-            // Show dropdown, hide "no templates" message
-            dropdownContainer.style.display = 'block';
-            noTemplatesMessage.style.display = 'none';
-
-            // Add placeholder option
-            const placeholderOption = document.createElement('option');
-            placeholderOption.value = '';
-            placeholderOption.textContent = '-- Select a Template --';
-            templateSelect.appendChild(placeholderOption);
-
-            // Add template options with rich display
-            allTemplates.forEach(function(template) {
-                const option = document.createElement('option');
-
-                if (typeof template === 'object' && template.name) {
-                    option.value = template.name;
-                    // Display template name with language and status
-                    let display = template.name;
-                    if (template.language) {
-                        display += ' (' + template.language + ')';
-                    }
-                    if (template.category) {
-                        display += ' - ' + template.category;
-                    }
-                    option.textContent = display;
-                } else {
-                    option.value = template;
-                    option.textContent = template;
-                }
-
-                templateSelect.appendChild(option);
-                console.log('Added template:', option.value, option.textContent);
-            });
-
-            // Restore previously selected value if any
-            /*<![CDATA[*/
-            const currentValue = [[${invitation.templateName}]];
-            /*]]>*/
-            if (currentValue) {
-                templateSelect.value = currentValue;
-                updateTemplatePreview(); // Show preview for current selection
-            }
-
-            console.log('Populated', allTemplates.length, 'templates');
-        } else {
-            console.log('No templates available');
-            // Show "no templates" message, hide dropdown
-            dropdownContainer.style.display = 'none';
-            noTemplatesMessage.style.display = 'block';
-        }
-    }
-
-    // Update template preview when selection changes
-    function updateTemplatePreview() {
-        const templateName = document.getElementById('templateName').value;
-        const templatePreviewCard = document.getElementById('templatePreviewCard');
-        const templateLanguageInput = document.getElementById('templateLanguage');
-
-        if (!templateName) {
-            templatePreviewCard.style.display = 'none';
-            templateLanguageInput.value = ''; // Clear language
-            return;
-        }
-
-        // Find the selected template
-        const selectedTemplate = allTemplates.find(t => t.name === templateName);
-
-        if (!selectedTemplate) {
-            templatePreviewCard.style.display = 'none';
-            templateLanguageInput.value = ''; // Clear language
-            return;
-        }
-
-        // Auto-fill template language from selected template
-        if (selectedTemplate.language) {
-            templateLanguageInput.value = selectedTemplate.language;
-            console.log('Auto-filled language:', selectedTemplate.language, 'for template:', templateName);
-        }
-
-        // Extract component texts
-        const headerText = selectedTemplate.components
-            ? selectedTemplate.components.find(c => c.type === 'HEADER')?.text || ''
-            : '';
-        const bodyText = selectedTemplate.components
-            ? selectedTemplate.components.find(c => c.type === 'BODY')?.text || ''
-            : '';
-        const footerText = selectedTemplate.components
-            ? selectedTemplate.components.find(c => c.type === 'FOOTER')?.text || ''
-            : '';
-
-        // Update preview card
-        document.getElementById('templatePreviewName').textContent =
-            (selectedTemplate.name || 'Template') + ' Preview';
-        document.getElementById('templatePreviewHeader').textContent =
-            headerText ? '📌 ' + headerText : '';
-        document.getElementById('templatePreviewBody').textContent = bodyText;
-        document.getElementById('templatePreviewFooter').textContent =
-            footerText ? '✓ ' + footerText : '';
-
-        // Update badges
-        document.getElementById('templateCategory').textContent =
-            selectedTemplate.category || 'UTILITY';
-        document.getElementById('templateLanguageTag').textContent =
-            selectedTemplate.language || 'en';
-        document.getElementById('templateStatus').textContent =
-            selectedTemplate.status || 'APPROVED';
-
-        // **AUTO-POPULATE MESSAGE FIELD WITH TEMPLATE CONTENT**
-        // Build the full template text from components
-        let fullTemplateText = '';
-        if (headerText) {
-            fullTemplateText += headerText + '\n\n';
-        }
-        if (bodyText) {
-            fullTemplateText += bodyText;
-        }
-        if (footerText) {
-            fullTemplateText += '\n\n' + footerText;
-        }
-
-        // Auto-fill the message textarea with the template content
-        const messageField = document.getElementById('message');
-        messageField.value = fullTemplateText.trim();
-
-        // Update the live preview
-        document.getElementById('previewMessage').textContent = fullTemplateText.trim() || 'Message preview will appear here...';
-
-        // Show template help text
-        document.getElementById('messageHelpPlain').style.display = 'none';
-        document.getElementById('messageHelpTemplate').style.display = 'inline';
-
-        console.log('Auto-populated message field with template content:', fullTemplateText.substring(0, 100) + '...');
-
-        // Show preview card
-        templatePreviewCard.style.display = 'block';
-
-        console.log('Updated preview for template:', selectedTemplate.name);
-    }
-
-    // Toggle template configuration fields based on message type
-    function toggleTemplateFields() {
-        const templateFields = document.getElementById('templateFields');
-        const messageTypeTemplate = document.getElementById('messageTypeTemplate');
-        const templateNameSelect = document.getElementById('templateName');
-        const templateNameRequired = document.getElementById('templateNameRequired');
-        const messageInput = document.getElementById('message');
-        const messageRequired = document.getElementById('messageRequired');
-
-        if (messageTypeTemplate.checked) {
-            // Template mode
-            if (allTemplates && allTemplates.length > 0) {
-                templateFields.style.display = 'block';
-                templateNameSelect.required = true;
-                templateNameRequired.style.display = 'inline';
+            // Use multipart/form-data only for methods with file uploads
+            if (method === 'email' || method.startsWith('whatsapp')) {
+                form.enctype = 'multipart/form-data';
             } else {
-                templateFields.style.display = 'block';
+                // For SMS, external, and other methods without file uploads
+                form.enctype = 'application/x-www-form-urlencoded';
             }
-
-            // Message is now required for templates (to store template content)
-            messageInput.required = true;
-            messageRequired.textContent = '*';
-            messageInput.placeholder = 'Select a template above to auto-populate this field with the WhatsApp template content...';
-
-            // Show template help text
-            document.getElementById('messageHelpPlain').style.display = 'none';
-            document.getElementById('messageHelpTemplate').style.display = 'inline';
-        } else {
-            // Plain text mode
-            templateFields.style.display = 'none';
-            templateNameSelect.required = false;
-            templateNameRequired.style.display = 'none';
-
-            // Message is required for plain text
-            messageInput.required = true;
-            messageRequired.textContent = '*';
-            messageInput.placeholder = 'Dear Guest,\n\nWe are delighted to invite you to celebrate the wedding of...\n\nRSVP: ...';
-
-            // Show plain help text
-            document.getElementById('messageHelpPlain').style.display = 'inline';
-            document.getElementById('messageHelpTemplate').style.display = 'none';
         }
     }
 
     // Form validation
     document.querySelector('form').addEventListener('submit', function(e) {
-        const messageTypeTemplate = document.getElementById('messageTypeTemplate');
-        const messageTypePlain = document.getElementById('messageTypePlain');
-        const templateName = document.getElementById('templateName').value;
-        const message = document.getElementById('message').value;
+        const selectedMethod = document.querySelector('input[name="deliveryMethod"]:checked');
 
-        // Template mode validation
-        if (messageTypeTemplate.checked) {
-            if (!templateName.trim()) {
+        if (!selectedMethod) {
+            e.preventDefault();
+            alert('Please select a delivery method.');
+            return false;
+        }
+
+        const method = selectedMethod.value;
+
+        // Update form encoding before submission
+        updateFormEncoding();
+
+        // Validate based on delivery method
+        if (method === 'email') {
+            const subject = document.getElementById('emailSubject').value;
+            const body = document.getElementById('emailBody').value;
+            if (!subject.trim() || !body.trim()) {
                 e.preventDefault();
-                alert('Please select a WhatsApp template.');
+                alert('Email subject and body are required.');
+                return false;
+            }
+        } else if (method === 'sms') {
+            const smsText = document.getElementById('smsText').value;
+            if (!smsText.trim()) {
+                e.preventDefault();
+                alert('SMS message text is required.');
+                return false;
+            }
+        } else if (method.startsWith('whatsapp')) {
+            const whatsappText = document.getElementById('whatsappText').value;
+            if (!whatsappText.trim()) {
+                e.preventDefault();
+                alert('WhatsApp message is required.');
                 return false;
             }
         }
+    });
 
-        // Plain text mode validation
-        if (messageTypePlain.checked) {
-            if (!message.trim()) {
-                e.preventDefault();
-                alert('Message is required for plain text invitations.');
-                return false;
-            }
-        }
+    // Update form encoding when delivery method changes
+    document.querySelectorAll('input[name="deliveryMethod"]').forEach(radio => {
+        radio.addEventListener('change', updateFormEncoding);
     });
 </script>
 </body>

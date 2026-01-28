@@ -1,36 +1,9 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <title>Travel Information</title>
-    <meta charset="UTF-8">
-    <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
-    <style>
-        .attendee-field-group {
-            background-color: #f8f9fa;
-            border-left: 4px solid #0d6efd;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 0.25rem;
-        }
-    </style>
-</head>
+<head th:replace="~{_guest_mobile_shell :: head}"></head>
 <body class="bg-light">
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/">WedKnots</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="/invitations">My Invitations</a></li>
-                <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
-            </ul>
-        </div>
-    </div>
-</nav>
-
-<div class="container py-5">
+<th:block th:replace="~{_navbar :: guestNav}"></th:block>
+<div class="container-fluid container-mobile py-3">
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card shadow">
@@ -38,19 +11,25 @@
                     <h3 class="mb-0"><i class="bi bi-airplane"></i> Travel Information</h3>
                 </div>
                 <div class="card-body p-5">
-                    <p class="text-muted mb-4">Share your travel details to help us coordinate pickups and
-                        accommodations
+                    <p class="text-muted mb-4">Share your travel details to help us to make arrangements for your
+                        arrival and stay.
                     </p>
 
-                    <form action="/invitations/travel-info/save" method="post" th:object="${travelInfo}">
-                        <!-- Hidden fields -->
-                        <input type="hidden" name="guestId" th:value="${guest.id}"/>
-                        <input type="hidden" name="eventId" th:value="${eventId}"/>
+                    <!-- Attendees Section (RSVP-style) -->
+                    <div class="mb-4">
+                        <h4><i class="bi bi-people"></i> Attendees</h4>
+                        <div id="attendeesContainer"></div>
+                        <button type="button" class="btn btn-primary mt-2" id="addAttendeeBtn" onclick="addAttendee()">
+                            + Add Attendee
+                        </button>
+                        <input type="hidden" name="attendeeCount" id="attendeeCountHidden" value="0">
+                        <input type="hidden" name="maxAllowedAttendees" id="maxAllowedAttendeesHidden" value="0">
+                        <div class="form-hint mt-2">Add all attendees who will be coming with you</div>
+                    </div>
 
-                        <!-- Hidden attendee fields (will be populated by JavaScript) -->
-                        <div id="attendeeNameFields"></div>
-                        <div id="attendeeAgeFields"></div>
+                    <div id="attendeeError" class="alert alert-danger" style="display:none;"></div>
 
+                    <div id="travelInfoForm">
                         <!-- Arrival Information -->
                         <div class="card mb-4 bg-light">
                             <div class="card-header">
@@ -60,7 +39,7 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="arrivalMode" class="form-label">Mode of Transport</label>
-                                        <select id="arrivalMode" th:field="*{arrivalMode}" class="form-select">
+                                        <select id="arrivalMode" class="form-select">
                                             <option value="">-- Select --</option>
                                             <option value="FLIGHT">✈️ Flight</option>
                                             <option value="TRAIN">🚂 Train</option>
@@ -69,7 +48,7 @@
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label for="arrivalDateTime" class="form-label">Arrival Date & Time</label>
-                                        <input type="datetime-local" th:field="*{arrivalDateTime}" class="form-control">
+                                        <input type="datetime-local" id="arrivalDateTime" class="form-control">
                                     </div>
                                 </div>
 
@@ -78,12 +57,12 @@
                                         <label for="arrivalFlightNumber" class="form-label">Flight Number (if
                                             applicable)
                                         </label>
-                                        <input type="text" th:field="*{arrivalFlightNumber}" class="form-control"
+                                        <input type="text" id="arrivalFlightNumber" class="form-control"
                                                placeholder="e.g., AI 123">
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label for="arrivalAirport" class="form-label">Airport</label>
-                                        <input type="text" th:field="*{arrivalAirport}" class="form-control"
+                                        <input type="text" id="arrivalAirport" class="form-control"
                                                placeholder="e.g., Indira Gandhi Airport">
                                     </div>
                                 </div>
@@ -91,12 +70,12 @@
                                     <div class="col-md-6 mb-3">
                                         <label for="arrivalTrainNumber" class="form-label">Train Number (if
                                             applicable)</label>
-                                        <input type="text" th:field="*{arrivalTrainNumber}" class="form-control"
+                                        <input type="text" id="arrivalTrainNumber" class="form-control"
                                                placeholder="e.g., 12345">
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label for="arrivalStation" class="form-label">Station</label>
-                                        <input type="text" th:field="*{arrivalStation}" class="form-control"
+                                        <input type="text" id="arrivalStation" class="form-control"
                                                placeholder="e.g., New Delhi">
                                     </div>
                                 </div>
@@ -112,7 +91,7 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="departureMode" class="form-label">Mode of Transport</label>
-                                        <select id="departureMode" th:field="*{departureMode}" class="form-select">
+                                        <select id="departureMode" class="form-select">
                                             <option value="">-- Select --</option>
                                             <option value="FLIGHT">✈️ Flight</option>
                                             <option value="TRAIN">🚂 Train</option>
@@ -121,7 +100,7 @@
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label for="departureDateTime" class="form-label">Departure Date & Time</label>
-                                        <input type="datetime-local" th:field="*{departureDateTime}"
+                                        <input type="datetime-local" id="departureDateTime"
                                                class="form-control">
                                     </div>
                                 </div>
@@ -131,12 +110,12 @@
                                         <label for="departureFlightNumber" class="form-label">Flight Number (if
                                             applicable)
                                         </label>
-                                        <input type="text" th:field="*{departureFlightNumber}" class="form-control"
+                                        <input type="text" id="departureFlightNumber" class="form-control"
                                                placeholder="e.g., AI 124">
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label for="departureAirport" class="form-label">Airport</label>
-                                        <input type="text" th:field="*{departureAirport}" class="form-control"
+                                        <input type="text" id="departureAirport" class="form-control"
                                                placeholder="e.g., Indira Gandhi Airport">
                                     </div>
                                 </div>
@@ -145,237 +124,474 @@
                                         <label for="departureTrainNumber" class="form-label">Train Number (if
                                             applicable)
                                         </label>
-                                        <input type="text" th:field="*{departureTrainNumber}" class="form-control"
+                                        <input type="text" id="departureTrainNumber" class="form-control"
                                                placeholder="e.g., 67890">
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label for="departureStation" class="form-label">Station</label>
-                                        <input type="text" th:field="*{departureStation}" class="form-control"
+                                        <input type="text" id="departureStation" class="form-control"
                                                placeholder="e.g., New Delhi">
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Assistance Needed -->
-                        <div class="card mb-4 bg-light">
-                            <div class="card-header">
-                                <h5 class="mb-0"><i class="bi bi-hand-thumbs-up"></i> Assistance</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" th:field="*{needsPickup}"
-                                               id="needsPickup">
-                                        <label class="form-check-label" for="needsPickup">
-                                            Need pickup from airport/station?
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" th:field="*{needsDrop}"
-                                               id="needsDrop">
-                                        <label class="form-check-label" for="needsDrop">
-                                            Need drop to airport/station?
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Special Requirements -->
-                        <div class="mb-4">
-                            <label for="specialRequirements" class="form-label">Special Requirements</label>
-                            <textarea th:field="*{specialRequirements}" class="form-control" rows="3"
-                                      placeholder="e.g., dietary restrictions, accessibility needs, etc."></textarea>
-                        </div>
-
-                        <!-- Additional Notes -->
-                        <div class="mb-4">
-                            <label for="notes" class="form-label">Additional Notes</label>
-                            <textarea th:field="*{notes}" class="form-control" rows="3"
-                                      placeholder="Any other information you'd like to share"></textarea>
-                        </div>
-
-                        <!-- Attendee Details Section -->
-                        <div class="card mb-4 bg-light">
-                            <div class="card-header">
-                                <h5 class="mb-0"><i class="bi bi-person-check"></i> Attendee Details</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted small mb-3">Enter names and ages for each attendee (based on count from RSVP)</p>
-
-                                <!-- Attendee Input Fields -->
-                                <div id="attendeeFieldsContainer">
-                                    <!-- Fields will be generated by JavaScript -->
-                                </div>
-
-                                <div class="alert alert-info mt-3">
-                                    <i class="bi bi-info-circle"></i>
-                                    <strong>Note:</strong> The first attendee should be you. Please provide names for all attendees you confirmed in the RSVP.
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Buttons -->
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-warning btn-lg">
+                            <button type="button" class="btn btn-warning btn-lg" id="saveTravelBtn">
                                 <i class="bi bi-check-circle"></i> Save Travel Details & Attendees
                             </button>
-                            <a href="/invitations" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-left"></i> Cancel
+                            <a href="/guest/dashboard" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel and Return to Dashboard
                             </a>
                         </div>
-                    </form>
+
+                        <!-- Success/Error Messages -->
+                        <div id="travelInfoSuccess" class="alert alert-success mt-3" style="display:none;"></div>
+                        <div id="travelInfoError" class="alert alert-danger mt-3" style="display:none;"></div>
+                        <div id="travelInfoMsgOkBtnWrapper" style="display:none; text-align:center; margin-top:10px;">
+                            <button id="travelInfoMsgOkBtn" class="btn btn-primary">OK</button>
+                            <button id="travelInfoContinueEditBtn" class="btn btn-secondary" style="display:none; margin-left:10px;">Continue Editing</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    window.guestId = /*[[${guest.id}]]*/ null;
+    /*]]>*/
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    function toggleArrivalFields(shouldClearFields = true) {
-        const mode = document.getElementById('arrivalMode').value;
-        const flightFields = document.getElementById('arrivalFlightFields');
-        const trainFields = document.getElementById('arrivalTrainFields');
+    console.log('JS loaded');
 
-        flightFields.style.display = 'none';
-        trainFields.style.display = 'none';
+        function toggleArrivalFields(shouldClearFields = true) {
+            const mode = document.getElementById('arrivalMode').value;
+            const flightFields = document.getElementById('arrivalFlightFields');
+            const trainFields = document.getElementById('arrivalTrainFields');
 
-        if (mode === 'FLIGHT') {
-            flightFields.style.display = 'block';
-            if (shouldClearFields) {
-                // clear train-only fields only on mode change
-                document.querySelector('[name="arrivalTrainNumber"]').value = '';
-                document.querySelector('[name="arrivalStation"]').value = '';
+            flightFields.style.display = 'none';
+            trainFields.style.display = 'none';
+
+            if (mode === 'FLIGHT') {
+                flightFields.style.display = 'block';
+                if (shouldClearFields) {
+                    // clear train-only fields only on mode change
+                    document.querySelector('[name="arrivalTrainNumber"]').value = '';
+                    document.querySelector('[name="arrivalStation"]').value = '';
+                }
+            } else if (mode === 'TRAIN') {
+                trainFields.style.display = 'block';
+                if (shouldClearFields) {
+                    // clear flight-only fields only on mode change
+                    document.querySelector('[name="arrivalFlightNumber"]').value = '';
+                    document.querySelector('[name="arrivalAirport"]').value = '';
+                }
             }
-        } else if (mode === 'TRAIN') {
-            trainFields.style.display = 'block';
-            if (shouldClearFields) {
-                // clear flight-only fields only on mode change
-                document.querySelector('[name="arrivalFlightNumber"]').value = '';
-                document.querySelector('[name="arrivalAirport"]').value = '';
+            // Don't clear fields if no mode selected - preserve pre-populated values
+        }
+
+        function toggleDepartureFields(shouldClearFields = true) {
+            const mode = document.getElementById('departureMode').value;
+            const flightFields = document.getElementById('departureFlightFields');
+            const trainFields = document.getElementById('departureTrainFields');
+
+            flightFields.style.display = 'none';
+            trainFields.style.display = 'none';
+
+            if (mode === 'FLIGHT') {
+                flightFields.style.display = 'block';
+                if (shouldClearFields) {
+                    // clear train-only fields only on mode change
+                    document.querySelector('[name="departureTrainNumber"]').value = '';
+                    document.querySelector('[name="departureStation"]').value = '';
+                }
+            } else if (mode === 'TRAIN') {
+                trainFields.style.display = 'block';
+                if (shouldClearFields) {
+                    // clear flight-only fields only on mode change
+                    document.querySelector('[name="departureFlightNumber"]').value = '';
+                    document.querySelector('[name="departureAirport"]').value = '';
+                }
+            }
+            // Don't clear fields if no mode selected - preserve pre-populated values
+        }
+
+        let attendeeCount = 0;
+        let maxAllowedAttendees = 10; // Default fallback
+
+        // Set maxAllowedAttendees from backend if available
+        function setMaxAllowedAttendees(val) {
+            if (typeof val === 'number' && !isNaN(val)) {
+                maxAllowedAttendees = val;
+            } else if (typeof val === 'string' && val.trim() !== '' && !isNaN(Number(val))) {
+                maxAllowedAttendees = Number(val);
             }
         }
-        // Don't clear fields if no mode selected - preserve pre-populated values
-    }
 
-    function toggleDepartureFields(shouldClearFields = true) {
-        const mode = document.getElementById('departureMode').value;
-        const flightFields = document.getElementById('departureFlightFields');
-        const trainFields = document.getElementById('departureTrainFields');
-
-        flightFields.style.display = 'none';
-        trainFields.style.display = 'none';
-
-        if (mode === 'FLIGHT') {
-            flightFields.style.display = 'block';
-            if (shouldClearFields) {
-                // clear train-only fields only on mode change
-                document.querySelector('[name="departureTrainNumber"]').value = '';
-                document.querySelector('[name="departureStation"]').value = '';
-            }
-        } else if (mode === 'TRAIN') {
-            trainFields.style.display = 'block';
-            if (shouldClearFields) {
-                // clear flight-only fields only on mode change
-                document.querySelector('[name="departureFlightNumber"]').value = '';
-                document.querySelector('[name="departureAirport"]').value = '';
-            }
+        // Utility to escape HTML for value attributes
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;')
+                       .replace(/"/g, '&quot;')
+                       .replace(/'/g, '&#039;');
         }
-        // Don't clear fields if no mode selected - preserve pre-populated values
-    }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // On page load, show fields based on selected mode but don't clear values
-        toggleArrivalFields(false);
-        toggleDepartureFields(false);
-        // Generate attendee fields based on RSVP count
-        generateAttendeeFields();
-        // On user change, clear conflicting fields
-        document.getElementById('arrivalMode').addEventListener('change', function() {
-            toggleArrivalFields(true);
-        });
-        document.getElementById('departureMode').addEventListener('change', function() {
-            toggleDepartureFields(true);
-        });
-    });
-
-    // Get RSVP attendee count from page data
-    const rsvpAttendeeCount = [[${rsvp?.attendeeCount ?: 1}]];
-    const existingAttendees = [[${attendees}]];
-
-    function generateAttendeeFields() {
-        const count = rsvpAttendeeCount;
-        const container = document.getElementById('attendeeFieldsContainer');
-
-        for (let i = 0; i < count; i++) {
-            const fieldGroup = document.createElement('div');
-            fieldGroup.className = 'attendee-field-group';
-            fieldGroup.style.backgroundColor = '#f8f9fa';
-            fieldGroup.style.borderLeft = '4px solid #0d6efd';
-            fieldGroup.style.padding = '1rem';
-            fieldGroup.style.marginBottom = '1rem';
-            fieldGroup.style.borderRadius = '0.25rem';
-
-            const existingAttendee = existingAttendees && existingAttendees[i] ? existingAttendees[i] : null;
-            const name = existingAttendee ? existingAttendee.name : '';
-            const age = existingAttendee ? existingAttendee.ageGroup : '';
-
-            fieldGroup.innerHTML = `
-                <div class="row">
-                    <div class="col-md-8 mb-3">
-                        <label for="attendeeName_${i}" class="form-label">
-                            <strong>Attendee ${i + 1} Name</strong>
-                            ${i === 0 ? '<span class="text-muted small">(You)</span>' : ''}
-                        </label>
-                        <input type="text"
-                               class="form-control"
-                               id="attendeeName_${i}"
-                               name="attendeeNames"
-                               placeholder="Enter full name"
-                               value="${name}"
-                               required>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="attendeeAge_${i}" class="form-label"><strong>Age</strong></label>
-                        <select class="form-select"
-                                id="attendeeAge_${i}"
-                                name="attendeeAges"
-                                required>
-                            <option value="">-- Select --</option>
-                            <option value="Adult" ${age === 'Adult' ? 'selected' : ''}>Adult</option>
-                            <option value="Child" ${age === 'Child' ? 'selected' : ''}>Child (6-12)</option>
-                            <option value="Infant" ${age === 'Infant' ? 'selected' : ''}>Infant (0-5)</option>
-                        </select>
-                    </div>
+        function addAttendee(attendeeData = null) {
+            if (attendeeCount >= maxAllowedAttendees) {
+                updateAddAttendeeButton();
+                return;
+            }
+            attendeeCount++;
+            const container = document.getElementById('attendeesContainer');
+            const attendeeCard = document.createElement('div');
+            attendeeCard.className = 'attendee-card mb-2 p-3 border rounded';
+            attendeeCard.setAttribute('data-attendee-index', attendeeCount - 1);
+            // Log the actual attendeeData for debugging
+            console.log('[addAttendee] attendeeData:', attendeeData);
+            // Robust property access for all possible backend keys
+            const name = attendeeData ? (attendeeData.name || attendeeData.fullName || attendeeData.attendeeName || '') : '';
+            const mobile = attendeeData ? (attendeeData.mobileNumber || attendeeData.mobile || attendeeData.phone || '') : '';
+            const age = attendeeData ? (attendeeData.ageGroup || attendeeData.age || attendeeData.group || 'Adult') : 'Adult';
+            attendeeCard.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-bold">Attendee ${attendeeCount}</span>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeAttendee(this)">Remove</button>
+                </div>
+                <div class="mb-2">
+                    <label>Full Name</label>
+                    <input type="text" name="attendeeNames" class="form-control"
+                           value="${escapeHtml(name)}" required>
+                </div>
+                <div class="mb-2">
+                    <label>Mobile Number</label>
+                    <input type="tel" name="attendeeMobile" class="form-control"
+                           value="${escapeHtml(mobile)}" placeholder="+44 1234 567890">
+                </div>
+                <div class="mb-2">
+                    <label>Age Group</label>
+                    <select name="attendeeAges" class="form-select" required>
+                        <option value="">-- Select --</option>
+                        <option value="Adult" ${age === 'Adult' ? 'selected' : ''}>Adult</option>
+                        <option value="Child" ${age === 'Child' ? 'selected' : ''}>Child (6-12)</option>
+                        <option value="Infant" ${age === 'Infant' ? 'selected' : ''}>Infant (0-5)</option>
+                    </select>
                 </div>
             `;
-            container.appendChild(fieldGroup);
+            container.appendChild(attendeeCard);
+            console.log('[addAttendee] attendeeCard node:', attendeeCard);
+            updateAttendeeCount();
+            updateAddAttendeeButton();
+            setTimeout(() => {
+                console.log('[addAttendee] attendeesContainer.innerHTML:', container.innerHTML);
+            }, 0);
         }
-    }
 
-    // Form submission - ensure attendee fields are populated
-    document.querySelector('form').addEventListener('submit', function(e) {
-        const nameInputs = document.querySelectorAll('input[name="attendeeNames"]');
-        const ageSelects = document.querySelectorAll('select[name="attendeeAges"]');
+        function removeAttendee(button) {
+            const card = button.closest('.attendee-card');
+            card.remove();
+            attendeeCount--;
+            renumberAttendees();
+            updateAttendeeCount();
+            updateAddAttendeeButton();
+        }
 
-        // Validate all attendee fields are filled
-        for (let i = 0; i < nameInputs.length; i++) {
-            if (!nameInputs[i].value.trim()) {
-                alert('Please enter name for Attendee ' + (i + 1));
-                e.preventDefault();
-                return false;
-            }
-            if (!ageSelects[i].value) {
-                alert('Please select age group for Attendee ' + (i + 1));
-                e.preventDefault();
-                return false;
+        function renumberAttendees() {
+            const cards = document.querySelectorAll('.attendee-card');
+            cards.forEach((card, index) => {
+                card.setAttribute('data-attendee-index', index);
+                card.querySelector('.fw-bold').textContent = `Attendee ${index + 1}`;
+            });
+        }
+
+        function updateAttendeeCount() {
+            document.getElementById('attendeeCountHidden').value = attendeeCount;
+        }
+
+        function updateAddAttendeeButton() {
+            const addBtn = document.getElementById('addAttendeeBtn');
+            if (attendeeCount >= maxAllowedAttendees) {
+                addBtn.style.display = 'none';
+            } else {
+                addBtn.style.display = 'inline-block';
             }
         }
-    });
+
+        // Fetch travel info and attendees on page load
+        async function fetchTravelInfo() {
+            console.log('fetchTravelInfo called');
+            try {
+                const guestId = window.guestId;
+                const resp = await fetch(`/api/guests/${guestId}/travel`, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+                if (!resp.ok) throw new Error('Failed to fetch travel info');
+                const data = await resp.json();
+                console.log('[fetchTravelInfo] response:', data);
+                if (!data) {
+                    console.log('[fetchTravelInfo] No data received');
+                } else {
+                    if (!Array.isArray(data.attendees)) {
+                        console.log('[fetchTravelInfo] data.attendees is not an array:', data.attendees);
+                    } else {
+                        console.log('[fetchTravelInfo] attendees array:', data.attendees);
+                    }
+                }
+                prefillTravelInfoForm(data);
+            } catch (e) {
+                console.error('[fetchTravelInfo] error:', e);
+                document.getElementById('travelInfoError').textContent = 'Could not load travel info.';
+                document.getElementById('travelInfoError').style.display = '';
+            }
+        }
+
+        function prefillTravelInfoForm(data) {
+            console.log('[prefillTravelInfoForm] called with:', data);
+            if (!data) return;
+            const t = data || {};
+            document.getElementById('arrivalMode').value = t.arrivalMode || '';
+            document.getElementById('arrivalDateTime').value = t.arrivalDateTime ? t.arrivalDateTime.substring(0,16) : '';
+            document.getElementById('arrivalFlightNumber').value = t.arrivalFlightNumber || '';
+            document.getElementById('arrivalAirport').value = t.arrivalAirport || '';
+            document.getElementById('arrivalTrainNumber').value = t.arrivalTrainNumber || '';
+            document.getElementById('arrivalStation').value = t.arrivalStation || '';
+            document.getElementById('departureMode').value = t.departureMode || '';
+            document.getElementById('departureDateTime').value = t.departureDateTime ? t.departureDateTime.substring(0,16) : '';
+            document.getElementById('departureFlightNumber').value = t.departureFlightNumber || '';
+            document.getElementById('departureAirport').value = t.departureAirport || '';
+            document.getElementById('departureTrainNumber').value = t.departureTrainNumber || '';
+            document.getElementById('departureStation').value = t.departureStation || '';
+            // Show correct fields for arrival
+            toggleArrivalFields(false);
+            // Show correct fields for departure
+            toggleDepartureFields(false);
+            document.getElementById('attendeesContainer').innerHTML = '';
+            attendeeCount = 0;
+            if (typeof data.maxAllowedAttendees !== 'undefined') {
+                setMaxAllowedAttendees(data.maxAllowedAttendees);
+            }
+            if (Array.isArray(data.attendees) && data.attendees.length > 0) {
+                data.attendees.forEach((att) => {
+                    addAttendee(att);
+                });
+            } else {
+                addAttendee();
+            }
+            updateAddAttendeeButton();
+        }
+
+        // Collect all fields and attendees for submission
+        function collectTravelInfoSubmissionRequest() {
+
+            // Collect attendees
+            const attendees = [];
+            document.querySelectorAll('.attendee-card').forEach(card => {
+                const att = {
+                    name: card.querySelector('input[name="attendeeNames"]').value,
+                    mobileNumber: card.querySelector('input[name="attendeeMobile"]').value,
+                    ageGroup: card.querySelector('select[name="attendeeAges"]').value
+                };
+                attendees.push(att);
+            });
+            const maxAllowedAttendees = document.getElementById("maxAllowedAttendeesHidden") ? parseInt(document.getElementById("maxAllowedAttendeesHidden").value) : 0;
+            const req = {
+                guestId: window.guestId,
+                attendees,
+                arrivalMode: document.getElementById('arrivalMode').value,
+                arrivalDateTime: padSeconds(document.getElementById('arrivalDateTime').value),
+                arrivalFlightNumber: document.getElementById('arrivalFlightNumber').value,
+                arrivalAirport: document.getElementById('arrivalAirport').value,
+                arrivalTrainNumber: document.getElementById('arrivalTrainNumber').value,
+                arrivalStation: document.getElementById('arrivalStation').value,
+                departureMode: document.getElementById('departureMode').value,
+                departureDateTime: padSeconds(document.getElementById('departureDateTime').value),
+                departureFlightNumber: document.getElementById('departureFlightNumber').value,
+                departureAirport: document.getElementById('departureAirport').value,
+                departureTrainNumber: document.getElementById('departureTrainNumber').value,
+                departureStation: document.getElementById('departureStation').value,
+                maxAllowedAttendees
+            };
+            console.log('[collectTravelInfoSubmissionRequest] built request:', req);
+            return req;
+        }
+
+        function validateTravelInfoForm() {
+            // Validate travel info fields
+            const arrivalMode = document.getElementById('arrivalMode').value;
+            const arrivalDateTime = document.getElementById('arrivalDateTime').value;
+            const departureMode = document.getElementById('departureMode').value;
+            const departureDateTime = document.getElementById('departureDateTime').value;
+            let valid = true;
+            let errorMsg = [];
+            if (!arrivalMode) {
+                valid = false;
+                errorMsg.push('Arrival mode is required.');
+            }
+            if (!arrivalDateTime) {
+                valid = false;
+                errorMsg.push('Arrival date and time is required.');
+            }
+            if (!departureMode) {
+                valid = false;
+                errorMsg.push('Departure mode is required.');
+            }
+            if (!departureDateTime) {
+                valid = false;
+                errorMsg.push('Departure date and time is required.');
+            }
+            // Validate at least one attendee
+            const attendeeCards = document.querySelectorAll('.attendee-card');
+            if (attendeeCards.length === 0) {
+                valid = false;
+                errorMsg.push('At least one attendee is required.');
+            }
+            // Validate attendee fields
+            attendeeCards.forEach((card, idx) => {
+                const name = card.querySelector('input[name="attendeeNames"]').value.trim();
+                const ageGroup = card.querySelector('select[name="attendeeAges"]').value;
+                if (!name) {
+                    valid = false;
+                    errorMsg.push(`Attendee ${idx + 1}: Name is required.`);
+                }
+                if (!ageGroup) {
+                    valid = false;
+                    errorMsg.push(`Attendee ${idx + 1}: Age group is required.`);
+                }
+            });
+            if (!valid) {
+                document.getElementById('attendeeError').innerHTML = errorMsg.join('<br>');
+                document.getElementById('attendeeError').style.display = '';
+                scrollToMsg('attendeeError');
+            } else {
+                document.getElementById('attendeeError').style.display = 'none';
+            }
+            return valid;
+        }
+
+        // Save travel info via AJAX
+        async function saveTravelInfo() {
+            if (!validateTravelInfoForm()) {
+                return;
+            }
+            try {
+                const req = collectTravelInfoSubmissionRequest();
+                const resp = await fetch(`/api/guests/${req.guestId}/travel`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(req)
+                });
+                const data = await resp.json();
+                console.log('[saveTravelInfo] response:', data);
+                if (data.success) {
+                    document.getElementById('travelInfoSuccess').textContent = data.message || 'Saved!';
+                    document.getElementById('travelInfoSuccess').style.display = '';
+                    document.getElementById('travelInfoError').style.display = 'none';
+                    showOkButton(true); // true = show continue editing
+                    scrollToMsg('travelInfoSuccess');
+                } else {
+                    document.getElementById('travelInfoError').textContent = data.error || 'Error saving.';
+                    document.getElementById('travelInfoError').style.display = '';
+                    document.getElementById('travelInfoSuccess').style.display = 'none';
+                    showOkButton(false); // false = do not show continue editing
+                    scrollToMsg('travelInfoError');
+                }
+            } catch (e) {
+                console.log('[saveTravelInfo] fetch error:', e);
+                document.getElementById('travelInfoError').textContent = 'Error saving.';
+                document.getElementById('travelInfoError').style.display = '';
+                document.getElementById('travelInfoSuccess').style.display = 'none';
+                scrollToMsg('travelInfoError');
+            }
+        }
+        function padSeconds(dtStr) {
+            if (!dtStr) return dtStr;
+            // Keep only up to minutes: yyyy-MM-ddTHH:mm
+            const m = dtStr.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
+            return m ? m[1] : dtStr;
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded');
+            fetchTravelInfo();
+            // On page load, show fields based on selected mode but don't clear values
+            toggleArrivalFields(false);
+            toggleDepartureFields(false);
+            // Prefill and show correct fields if editing
+            const arrivalMode = document.getElementById('arrivalMode').value;
+            if (arrivalMode === 'FLIGHT') {
+                document.getElementById('arrivalFlightFields').style.display = 'block';
+            } else if (arrivalMode === 'TRAIN') {
+                document.getElementById('arrivalTrainFields').style.display = 'block';
+            }
+            const departureMode = document.getElementById('departureMode').value;
+            if (departureMode === 'FLIGHT') {
+                document.getElementById('departureFlightFields').style.display = 'block';
+            } else if (departureMode === 'TRAIN') {
+                document.getElementById('departureTrainFields').style.display = 'block';
+            }
+            // On user change, clear conflicting fields
+            document.getElementById('arrivalMode').addEventListener('change', function() {
+                toggleArrivalFields(true);
+            });
+            document.getElementById('departureMode').addEventListener('change', function() {
+                toggleDepartureFields(true);
+            });
+            document.getElementById('saveTravelBtn').addEventListener('click', saveTravelInfo);
+
+            // If maxAllowedAttendees is set in a hidden field, use it
+            const maxAttendeesField = document.getElementById('maxAllowedAttendeesHidden');
+            if (maxAttendeesField && maxAttendeesField.value) {
+                setMaxAllowedAttendees(maxAttendeesField.value);
+            }
+            updateAddAttendeeButton();
+        });
+
+        function setTravelFormButtonsEnabled(enabled) {
+            // Save button
+            const saveBtn = document.getElementById('saveTravelBtn');
+            if (saveBtn) saveBtn.disabled = !enabled;
+            // Back hyperlink
+            const backBtn = document.querySelector('a.btn-outline-secondary');
+            if (backBtn) backBtn.classList.toggle('disabled', !enabled);
+            if (backBtn) backBtn.setAttribute('tabindex', enabled ? '0' : '-1');
+            if (backBtn) backBtn.setAttribute('aria-disabled', (!enabled).toString());
+        }
+
+        function showOkButton(showContinueEdit) {
+            setTravelFormButtonsEnabled(false);
+            var okBtnWrapper = document.getElementById('travelInfoMsgOkBtnWrapper');
+            okBtnWrapper.style.display = '';
+            var okBtn = document.getElementById('travelInfoMsgOkBtn');
+            okBtn.onclick = function() {
+                window.location.href = '/guest/dashboard';
+            };
+            var continueBtn = document.getElementById('travelInfoContinueEditBtn');
+            if (showContinueEdit) {
+                continueBtn.style.display = '';
+                continueBtn.onclick = function() {
+                    document.getElementById('travelInfoSuccess').style.display = 'none';
+                    hideOkButton();
+                    setTravelFormButtonsEnabled(true);
+                    // Clear success message
+                    document.getElementById('travelInfoSuccess').textContent = '';
+                };
+            } else {
+                continueBtn.style.display = 'none';
+            }
+        }
+        function hideOkButton() {
+            document.getElementById('travelInfoMsgOkBtnWrapper').style.display = 'none';
+        }
+        function scrollToMsg(msgId) {
+            var el = document.getElementById(msgId);
+            if (el) {
+                el.scrollIntoView({behavior: 'smooth', block: 'center'});
+            }
+        }
 </script>
+</div>
 </body>
 </html>

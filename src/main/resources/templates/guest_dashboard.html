@@ -1,52 +1,230 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <title>Guest Dashboard</title>
-    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}"/>
-    <link rel="stylesheet" th:href="@{/css/styles.css}"/>
-    <script th:src="@{/js/bootstrap.bundle.min.js}"></script>
-    <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
-</head>
+<head th:replace="~{_guest_mobile_shell :: head}"></head>
 <body class="bg-light">
 <th:block th:replace="~{_navbar :: guestNav}"></th:block>
-</nav>
-<div class="container py-5">
-  <h1 class="mb-4">Guest Dashboard</h1>
-  <div class="row">
-    <div class="col-md-6 col-lg-4 mb-3">
-      <div class="card h-100">
-        <div class="card-body text-center">
-          <h5 class="card-title"><i class="bi bi-envelope"></i> Invitations</h5>
-          <p class="text-muted small">View your wedding invitations</p>
-          <a href="/invitations" class="btn btn-outline-primary w-100">View My Invitations</a>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-6 col-lg-4 mb-3">
-      <div class="card h-100">
-        <div class="card-body text-center">
-          <h5 class="card-title"><i class="bi bi-check-circle"></i> RSVP</h5>
-          <p class="text-muted small">Confirm your attendance</p>
-          <a href="/rsvps/form" class="btn btn-outline-primary w-100">Submit/Update RSVP</a>
-          <a href="/rsvps" class="btn btn-outline-secondary w-100 mt-2">View My RSVP Status</a>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-6 col-lg-4 mb-3">
-      <div class="card h-100 border-info">
-        <div class="card-body text-center">
-          <h5 class="card-title"><i class="bi bi-chat-dots"></i> Messages</h5>
-          <p class="text-muted small">Chat with hosts</p>
-          <a href="/invitations" class="btn btn-outline-info w-100">View Messages</a>
-          <small class="text-muted d-block mt-2">Access from your invitation</small>
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="container-fluid container-mobile py-3">
+    <div class="container py-4">
+        <h1 class="mb-4 fs-4">Guest Dashboard</h1>
 
-  <style>
-    .border-info { border-left: 4px solid #0dcaf0; }
-  </style>
+        <div th:if="${emptyState}" class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No invitations found for your account.
+        </div>
+
+        <!-- Single event view -->
+        <div th:if="${singleEvent}" class="mb-4">
+            <!-- Event Details Card -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar-heart"></i> Event Information</h5>
+                </div>
+                <div class="card-body">
+                    <h4 class="mb-3" th:text="${event.name}">Event Name</h4>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-people-fill text-primary me-2"></i>
+                                <strong>Bride:</strong>
+                                <span class="ms-2" th:text="${event.brideName}">Bride Name</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-person-fill text-primary me-2"></i>
+                                <strong>Groom:</strong>
+                                <span class="ms-2" th:text="${event.groomName}">Groom Name</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-calendar-event text-primary me-2"></i>
+                                <strong>Date:</strong>
+                                <span class="ms-2"
+                                      th:text="${#temporals.format(event.date, 'MMMM dd, yyyy')}">Date</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-geo-alt-fill text-primary me-2"></i>
+                                <strong>Place:</strong>
+                                <a th:if="${event.aboutLocationUrl != null}" th:href="${event.aboutLocationUrl}"
+                                   th:text="${event.place}" target="_blank" class="ms-2">${event.place}</a>
+                                <span th:if="${event.aboutLocationUrl == null}"
+                                      th:text="${event.place}" class="ms-2">${event.place}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status chips -->
+                    <div class="d-flex flex-wrap gap-3 mb-3">
+                        <div>
+                            <strong>RSVP:</strong>
+                            <span class="badge ms-2"
+                                  th:classappend="${eventInvitations[0].guest.rsvp != null && eventInvitations[0].guest.rsvp.status != null && eventInvitations[0].guest.rsvp.status.toString().equalsIgnoreCase('ATTENDING') ? 'bg-success' : (eventInvitations[0].guest.rsvp != null && eventInvitations[0].guest.rsvp.status != null && eventInvitations[0].guest.rsvp.status.toString().equalsIgnoreCase('NOT_ATTENDING') ? 'bg-danger' : 'bg-secondary')}"
+                                  th:text="${eventInvitations[0].guest.rsvp != null && eventInvitations[0].guest.rsvp.status != null ? eventInvitations[0].guest.rsvp.status : 'PENDING'}">PENDING</span>
+                            <span th:if="${eventInvitations[0].guest.rsvp != null and eventInvitations[0].guest.rsvp.status != null and eventInvitations[0].guest.rsvp.status.toString().equalsIgnoreCase('ATTENDING')}"
+                                  class="ms-2 text-muted small">(No. of Attendees: <span
+                                    th:text="${eventInvitations[0].guest.rsvp.attendeeCount}">0</span>)
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Travel Details:</strong>
+                            <span class="badge ms-2"
+                                  th:classappend="${eventInvitations[0].guest.travelInfo != null ? 'bg-success' : 'bg-secondary'}"
+                                  th:text="${eventInvitations[0].guest.travelInfo != null ? 'SUBMITTED' : 'NOT SUBMITTED'}">NOT SUBMITTED</span>
+                        </div>
+                    </div>
+
+                    <!-- Travel Info Details -->
+                    <div th:if="${eventInvitations[0].guest.travelInfo != null}" class="mb-4">
+                        <div class="card card-body bg-light">
+                            <h5 class="mb-3"><i class="bi bi-airplane"></i> Travel Details</h5>
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <h6 class="text-primary mb-2"><i class="bi bi-arrow-down-circle"></i> Arrival</h6>
+                                    <div class="mb-2">
+                                        <strong>Date:</strong>
+                                        <span th:text="${#temporals.format(eventInvitations[0].guest.travelInfo.arrivalDateTime, 'MMM dd, yyyy HH:mm')}"></span>
+                                    </div>
+                                    <div th:if="${eventInvitations[0].guest.travelInfo.arrivalMode.name == 'FLIGHT'}">
+                                        <div th:if="${eventInvitations[0].guest.travelInfo.arrivalAirport != null}">
+                                            <strong>Airport:</strong>
+                                            <span th:text="${eventInvitations[0].guest.travelInfo.arrivalAirport}"></span>
+                                        </div>
+                                        <div th:if="${eventInvitations[0].guest.travelInfo.arrivalFlightNumber != null}">
+                                            <strong>Flight No:</strong>
+                                            <span th:text="${eventInvitations[0].guest.travelInfo.arrivalFlightNumber}"></span>
+                                        </div>
+                                    </div>
+                                    <div th:if="${eventInvitations[0].guest.travelInfo.arrivalMode.name == 'TRAIN'}">
+                                        <div th:if="${eventInvitations[0].guest.travelInfo.arrivalStation != null}">
+                                            <strong>Station:</strong>
+                                            <span th:text="${eventInvitations[0].guest.travelInfo.arrivalStation}"></span>
+                                        </div>
+                                        <div th:if="${eventInvitations[0].guest.travelInfo.arrivalTrainNumber != null}">
+                                            <strong>Train No:</strong>
+                                            <span th:text="${eventInvitations[0].guest.travelInfo.arrivalTrainNumber}"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-primary mb-2"><i class="bi bi-arrow-up-circle"></i> Departure</h6>
+                                    <div class="mb-2">
+                                        <strong>Date:</strong>
+                                        <span th:text="${#temporals.format(eventInvitations[0].guest.travelInfo.departureDateTime, 'MMM dd, yyyy HH:mm')}"></span>
+                                    </div>
+                                    <div th:if="${eventInvitations[0].guest.travelInfo.departureMode.name == 'FLIGHT'}">
+                                        <div th:if="${eventInvitations[0].guest.travelInfo.departureAirport != null}">
+                                            <strong>Airport:</strong>
+                                            <span th:text="${eventInvitations[0].guest.travelInfo.departureAirport}"></span>
+                                        </div>
+                                        <div th:if="${eventInvitations[0].guest.travelInfo.departureFlightNumber != null}">
+                                            <strong>Flight No:</strong>
+                                            <span th:text="${eventInvitations[0].guest.travelInfo.departureFlightNumber}"></span>
+                                        </div>
+                                    </div>
+                                    <div th:if="${eventInvitations[0].guest.travelInfo.departureMode.name == 'TRAIN'}">
+                                        <div th:if="${eventInvitations[0].guest.travelInfo.departureStation != null}">
+                                            <strong>Station:</strong>
+                                            <span th:text="${eventInvitations[0].guest.travelInfo.departureStation}"></span>
+                                        </div>
+                                        <div th:if="${eventInvitations[0].guest.travelInfo.departureTrainNumber != null}">
+                                            <strong>Train No:</strong>
+                                            <span th:text="${eventInvitations[0].guest.travelInfo.departureTrainNumber}"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex flex-wrap gap-2">
+                        <a th:href="@{/invitations(eventId=${event.id})}" class="btn btn-outline-primary">
+                            <i class="bi bi-envelope"></i> Invitations
+                        </a>
+                        <a th:if="${eventInvitations[0].guest.rsvp == null}"
+                           th:href="@{/invitations/rsvp/form(guestId=${eventInvitations[0].guest.id}, eventId=${event.id})}"
+                           class="btn btn-outline-success">
+                            <i class="bi bi-check2-circle"></i> RSVP
+                        </a>
+                        <a th:if="${eventInvitations[0].guest.rsvp != null}"
+                           th:href="@{/invitations/rsvp/form(guestId=${eventInvitations[0].guest.id}, eventId=${event.id})}"
+                           class="btn btn-outline-warning">
+                            <i class="bi bi-pencil"></i>RSVP
+                        </a>
+                        <a th:if="${eventInvitations[0].guest.travelInfo == null && eventInvitations[0].guest.rsvp != null && eventInvitations[0].guest.rsvp.status.toString().equalsIgnoreCase('ATTENDING')}"
+                           th:href="@{/guests/{guestId}/travel(guestId=${eventInvitations[0].guest.id})}"
+                           class="btn btn-outline-info">
+                            <i class="bi bi-airplane"></i>Travel Details
+                        </a>
+                        <a th:if="${eventInvitations[0].guest.travelInfo != null}" class="btn btn-outline-info"
+                           th:href="@{/guests/{guestId}/travel(guestId=${eventInvitations[0].guest.id})}">
+                            <i class="bi bi-airplane"></i>Travel Details
+                        </a>
+                        <a th:href="@{/guest/messages/event/{eventId}(eventId=${event.id}, guestId=${eventInvitations[0].guest.id})}"
+                           class="btn btn-outline-dark">
+                            <i class="bi bi-chat-dots"></i> Messages
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Multiple events list -->
+        <div th:if="${events}" class="row g-3" th:each="ev : ${events}">
+            <div class="col-12 col-md-6">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <strong th:text="${ev.event.name}">Event Name</strong>
+                        <span class="badge bg-secondary" th:text="${#temporals.format(ev.event.date, 'MMM dd, yyyy')}">Date</span>
+                    </div>
+                    <div class="card-body d-flex flex-column gap-2">
+                        <div>
+                            <div class="text-muted small mb-1">Bride: <span th:text="${ev.event.brideName}">Bride</span>
+                            </div>
+                            <div class="text-muted small mb-1">Groom: <span th:text="${ev.event.groomName}">Groom</span>
+                            </div>
+                            <div class="text-muted small mb-1">Location: <span
+                                    th:text="${ev.event.place}">Location</span></div>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            <div class="small">
+                                <strong>RSVP:</strong>
+                                <span class="badge ms-1"
+                                      th:classappend="${ev.invitations[0].guest.rsvp != null && ev.invitations[0].guest.rsvp.status != null && ev.invitations[0].guest.rsvp.status.toString()equalsIgnoreCase('ATTENDING') ? 'bg-success' : (ev.invitations[0].guest.rsvp != null && ev.invitations[0].guest.rsvp.status != null && ev.invitations[0].guest.rsvp.status.toString().equalsIgnoreCase('NOT_ATTENDING') ? 'bg-danger' : 'bg-secondary')}"
+                                      th:text="${ev.invitations[0].guest.rsvp != null && ev.invitations[0].guest.rsvp.status != null ? ev.invitations[0].guest.rsvp.status : 'PENDING'}">PENDING</span>
+                            </div>
+                            <div class="small">
+                                <strong>Travel:</strong>
+                                <span class="badge ms-1"
+                                      th:classappend="${ev.invitations[0].guest.travelInfo != null ? 'bg-success' : 'bg-secondary'}"
+                                      th:text="${ev.invitations[0].guest.travelInfo != null ? 'SUBMITTED' : 'NOT SUBMITTED'}">NOT SUBMITTED</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto d-flex gap-2 flex-wrap">
+                            <a th:href="@{/invitations(eventId=${ev.event.id})}"
+                               class="btn btn-outline-primary btn-sm flex-fill">
+                                <i class="bi bi-envelope"></i> Invitations
+                            </a>
+                            <a th:href="@{/invitations/rsvp/form(guestId=${ev.invitations[0].guest.id}, eventId=${ev.event.id})}"
+                               class="btn btn-outline-success btn-sm flex-fill">
+                                <i class="bi bi-check2-circle"></i> RSVP
+                            </a>
+                            <a th:if="${ev.invitations[0].guest.rsvp != null && ev.invitations[0].guest.rsvp.toString().equalsIgnoreCase('ATTENDING')}"
+                               th:href="@{/guests/{guestId}/travel(guestId=${ev.invitations[0].guest.id})}"
+                               class="btn btn-outline-info btn-sm flex-fill">
+                                <i class="bi bi-airplane"></i> Travel
+                            </a>
+<!--                            <a th:href="@{/guest/messages/event/{eventId}(eventId=${ev.event.id}, guestId=${ev.invitations[0].guest.id})}"
+                               class="btn btn-outline-dark btn-sm flex-fill">
+                                <i class="bi bi-chat-dots"></i> Messages
+                            </a>-->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

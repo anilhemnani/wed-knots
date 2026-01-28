@@ -13,7 +13,7 @@
         <div>
             <h1>Attendees</h1>
             <p class="text-muted" th:text="'Event: ' + ${event.name}"></p>
-            <p class="text-muted" th:if="${rsvp.guest != null}" th:text="'Guest: ' + ${rsvp.guest.contactName}"></p>
+            <p class="text-muted" th:if="${rsvp.guest != null}" th:text="'Guest: ' + ${rsvp.guest.contactFirstName} + ' ' + ${rsvp.guest.contactLastName}"></p>
             <p class="text-muted" th:text="'RSVP Status: ' + ${rsvp.status}"></p>
         </div>
         <div>

@@ -6,7 +6,6 @@ import com.wedknots.dto.GuestMessageDTO;
 import com.wedknots.dto.PagedMessageResponse;
 import com.wedknots.model.WeddingEvent;
 import com.wedknots.service.MessageService;
-import com.wedknots.service.WhatsAppService;
 import com.wedknots.repository.GuestRepository;
 import com.wedknots.repository.WeddingEventRepository;
 import org.slf4j.Logger;
@@ -38,8 +37,6 @@ public class MessageApiController {
     @Autowired
     private MessageService messageService;
 
-    @Autowired
-    private WhatsAppService whatsAppService;
 
     @Autowired
     private WeddingEventRepository weddingEventRepository;
@@ -81,27 +78,10 @@ public class MessageApiController {
             logger.info("Outbound message created for guest {} in event {}. Message ID: {}",
                 guest.getId(), event.getId(), message.getId());
 
-            // Send via WhatsApp if enabled
-            if (Boolean.TRUE.equals(event.getWhatsappApiEnabled()) && guest.getContactPhone() != null) {
-                boolean sent = whatsAppService.sendMessage(
-                    event,
-                    guest.getContactPhone(),
-                    "Message from " + event.getName(),
-                    request.getMessageContent(),
-                    null
-                );
-
-                if (sent) {
+            // WhatsApp support removed - messages are stored but not sent
+            message.setStatus(GuestMessage.MessageStatus.DELIVERED);
                     message.setStatus(GuestMessage.MessageStatus.SENT);
                     messageService.updateMessage(message);
-                    logger.info("Message sent via WhatsApp to {}", guest.getContactPhone());
-                } else {
-                    message.setStatus(GuestMessage.MessageStatus.FAILED);
-                    message.setErrorMessage("Failed to send via WhatsApp Cloud API");
-                    messageService.updateMessage(message);
-                    logger.warn("Failed to send message via WhatsApp to {}", guest.getContactPhone());
-                }
-            }
 
             return ResponseEntity.ok(Map.of(
                 "success", true,

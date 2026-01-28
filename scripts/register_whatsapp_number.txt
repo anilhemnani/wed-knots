@@ -1,8 +1,0 @@
-
-curl -X POST "https://graph.facebook.com/v22.0/<phone number id>/register" \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messaging_product": "whatsapp",
-    "pin": "<6 digits pin>"
-  }'

@@ -51,27 +51,16 @@ public class AdminEventController {
     public String createEvent(@ModelAttribute WeddingEvent event,
                             RedirectAttributes redirectAttributes,
                             Model model) {
-        // Validate subdomain is provided
-        if (event.getSubdomain() == null || event.getSubdomain().trim().isEmpty()) {
+        if (!isValid(event, model)) {
             model.addAttribute("event", event);
-            model.addAttribute("error", "Subdomain is required");
             return "admin_event_form";
         }
 
-        // Trim whitespace
         event.setSubdomain(event.getSubdomain().trim());
 
-        // Check if subdomain is already taken
         if (weddingEventRepository.findBySubdomain(event.getSubdomain()).isPresent()) {
             model.addAttribute("event", event);
             model.addAttribute("error", "Subdomain is already taken. Please choose a different one.");
-            return "admin_event_form";
-        }
-
-        // Validate subdomain format (alphanumeric and hyphens only, lowercase)
-        if (!event.getSubdomain().matches("^[a-z0-9-]+$")) {
-            model.addAttribute("event", event);
-            model.addAttribute("error", "Subdomain must contain only lowercase letters, numbers, and hyphens.");
             return "admin_event_form";
         }
 
@@ -106,10 +95,13 @@ public class AdminEventController {
         Optional<WeddingEvent> existingOpt = weddingEventRepository.findById(id);
         if (existingOpt.isPresent()) {
             WeddingEvent existing = existingOpt.get();
-
-            // Prevent subdomain modification - keep the original subdomain
             event.setId(id);
             event.setSubdomain(existing.getSubdomain());
+
+            if (!isValid(event, model)) {
+                model.addAttribute("event", event);
+                return "admin_event_form";
+            }
 
             weddingEventRepository.save(event);
             redirectAttributes.addFlashAttribute("successMessage",
@@ -149,47 +141,31 @@ public class AdminEventController {
         return "redirect:/admin/events";
     }
 
-    /**
-     * WhatsApp configuration page
-     */
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/{id}/whatsapp-config")
-    public String showWhatsAppConfig(@PathVariable Long id, Model model) {
-        Optional<WeddingEvent> eventOpt = weddingEventRepository.findById(id);
-        if (eventOpt.isPresent()) {
-            model.addAttribute("event", eventOpt.get());
-            return "admin_whatsapp_config";
+    private boolean isValid(WeddingEvent event, Model model) {
+        if (event.getName() == null || event.getName().trim().isEmpty()) {
+            model.addAttribute("error", "Event name is required");
+            return false;
         }
-        return "redirect:/admin/events";
-    }
-
-    /**
-     * Update WhatsApp configuration
-     */
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/{id}/whatsapp-config")
-    public String updateWhatsAppConfig(@PathVariable Long id,
-                                       @ModelAttribute WeddingEvent updatedEvent,
-                                       RedirectAttributes redirectAttributes) {
-        Optional<WeddingEvent> eventOpt = weddingEventRepository.findById(id);
-        if (eventOpt.isPresent()) {
-            WeddingEvent event = eventOpt.get();
-
-            // Update WhatsApp configuration fields
-            event.setWhatsappApiEnabled(updatedEvent.getWhatsappApiEnabled());
-            event.setWhatsappPhoneNumberId(updatedEvent.getWhatsappPhoneNumberId());
-            event.setWhatsappBusinessAccountId(updatedEvent.getWhatsappBusinessAccountId());
-            event.setWhatsappAccessToken(updatedEvent.getWhatsappAccessToken());
-            event.setWhatsappApiVersion(updatedEvent.getWhatsappApiVersion());
-            event.setWhatsappVerifyToken(updatedEvent.getWhatsappVerifyToken());
-
-            weddingEventRepository.save(event);
-
-            redirectAttributes.addFlashAttribute("successMessage",
-                "WhatsApp Cloud API configuration saved successfully!");
-            return "redirect:/admin/events/" + id + "/whatsapp-config";
+        if (event.getBrideName() == null || event.getBrideName().trim().isEmpty()) {
+            model.addAttribute("error", "Bride name is required");
+            return false;
         }
-        return "redirect:/admin/events";
+        if (event.getGroomName() == null || event.getGroomName().trim().isEmpty()) {
+            model.addAttribute("error", "Groom name is required");
+            return false;
+        }
+        if (event.getDate() == null) {
+            model.addAttribute("error", "Event date is required");
+            return false;
+        }
+        if (event.getSubdomain() == null || event.getSubdomain().trim().isEmpty()) {
+            model.addAttribute("error", "Subdomain is required");
+            return false;
+        }
+        if (!event.getSubdomain().trim().matches("^[a-z0-9-]+$")) {
+            model.addAttribute("error", "Subdomain must contain only lowercase letters, numbers, and hyphens.");
+            return false;
+        }
+        return true;
     }
 }
-

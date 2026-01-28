@@ -59,7 +59,6 @@ public class GuestMessageDTO {
             .status(message.getStatus().name())
             .createdAt(message.getCreatedAt())
             .mediaUrl(message.getMediaUrl())
-            .whatsappMessageId(message.getWhatsappMessageId())
             .build();
     }
 }
