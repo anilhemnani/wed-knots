@@ -1,0 +1,78 @@
+/* Common CSS for guest dashboard, RSVP, travel info, messages, invitation view */
+
+body {
+    background: #f8fafc;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.card {
+    border-radius: 1rem;
+    box-shadow: 0 4px 24px #0001;
+}
+
+.card-header {
+    border-radius: 1rem 1rem 0 0;
+    font-weight: 500;
+    font-size: 1.1rem;
+    background: #1a3c6b;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.btn-outline-light {
+    border-color: #fff;
+    color: #fff;
+}
+.btn-outline-light:hover {
+    background: #fff;
+    color: #1a3c6b;
+}
+
+.fs-5 {
+    font-size: 1.25rem !important;
+}
+
+/* Section headers */
+h4, h5, h6 {
+    color: #1a3c6b;
+}
+
+/* Attendee card styling */
+.attendee-card {
+    background: #f9fafb;
+    border: 1px solid #e3e3e3;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    padding: 1rem;
+}
+
+/* Responsive container */
+.container, .container-fluid {
+    max-width: 900px;
+}
+
+/* Utility for aligning back button */
+.card-header .btn {
+    margin-left: auto;
+}
+
+/* Consistent spacing for forms */
+.form-label {
+    font-weight: 500;
+}
+
+.form-hint {
+    color: #888;
+    font-size: 0.95em;
+}
+
+.alert {
+    border-radius: 0.5rem;
+}
+
+/* Consistent margin for section blocks */
+.section {
+    margin-bottom: 2rem;
+}

@@ -1,163 +1,166 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{_guest_mobile_shell :: head}"></head>
+<head th:replace="~{_guest_mobile_shell :: head}">
+    <link rel="stylesheet" th:href="@{/css/guest_common.css}" />
+</head>
 <body class="bg-light">
 <th:block th:replace="~{_navbar :: guestNav}"></th:block>
-<div class="container-fluid container-mobile py-3">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow">
-                <div class="card-header bg-warning text-dark">
-                    <h3 class="mb-0"><i class="bi bi-airplane"></i> Travel Information</h3>
-                </div>
-                <div class="card-body p-5">
-                    <p class="text-muted mb-4">Share your travel details to help us to make arrangements for your
-                        arrival and stay.
-                    </p>
-
-                    <!-- Attendees Section (RSVP-style) -->
-                    <div class="mb-4">
-                        <h4><i class="bi bi-people"></i> Attendees</h4>
-                        <div id="attendeesContainer"></div>
-                        <button type="button" class="btn btn-primary mt-2" id="addAttendeeBtn" onclick="addAttendee()">
-                            + Add Attendee
-                        </button>
-                        <input type="hidden" name="attendeeCount" id="attendeeCountHidden" value="0">
-                        <input type="hidden" name="maxAllowedAttendees" id="maxAllowedAttendeesHidden" value="0">
-                        <div class="form-hint mt-2">Add all attendees who will be coming with you</div>
-                    </div>
-
-                    <div id="attendeeError" class="alert alert-danger" style="display:none;"></div>
-
-                    <div id="travelInfoForm">
-                        <!-- Arrival Information -->
-                        <div class="card mb-4 bg-light">
-                            <div class="card-header">
-                                <h5 class="mb-0"><i class="bi bi-arrow-down-circle"></i> Arrival</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="arrivalMode" class="form-label">Mode of Transport</label>
-                                        <select id="arrivalMode" class="form-select">
-                                            <option value="">-- Select --</option>
-                                            <option value="FLIGHT">✈️ Flight</option>
-                                            <option value="TRAIN">🚂 Train</option>
-                                            <option value="CAR">🚗 Car</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="arrivalDateTime" class="form-label">Arrival Date & Time</label>
-                                        <input type="datetime-local" id="arrivalDateTime" class="form-control">
-                                    </div>
-                                </div>
-
-                                <div class="row" id="arrivalFlightFields" style="display:none;">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="arrivalFlightNumber" class="form-label">Flight Number (if
-                                            applicable)
-                                        </label>
-                                        <input type="text" id="arrivalFlightNumber" class="form-control"
-                                               placeholder="e.g., AI 123">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="arrivalAirport" class="form-label">Airport</label>
-                                        <input type="text" id="arrivalAirport" class="form-control"
-                                               placeholder="e.g., Indira Gandhi Airport">
-                                    </div>
-                                </div>
-                                <div class="row" id="arrivalTrainFields" style="display:none;">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="arrivalTrainNumber" class="form-label">Train Number (if
-                                            applicable)</label>
-                                        <input type="text" id="arrivalTrainNumber" class="form-control"
-                                               placeholder="e.g., 12345">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="arrivalStation" class="form-label">Station</label>
-                                        <input type="text" id="arrivalStation" class="form-control"
-                                               placeholder="e.g., New Delhi">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Departure Information -->
-                        <div class="card mb-4 bg-light">
-                            <div class="card-header">
-                                <h5 class="mb-0"><i class="bi bi-arrow-up-circle"></i> Departure</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="departureMode" class="form-label">Mode of Transport</label>
-                                        <select id="departureMode" class="form-select">
-                                            <option value="">-- Select --</option>
-                                            <option value="FLIGHT">✈️ Flight</option>
-                                            <option value="TRAIN">🚂 Train</option>
-                                            <option value="CAR">🚗 Car</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="departureDateTime" class="form-label">Departure Date & Time</label>
-                                        <input type="datetime-local" id="departureDateTime"
-                                               class="form-control">
-                                    </div>
-                                </div>
-
-                                <div class="row" id="departureFlightFields" style="display:none;">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="departureFlightNumber" class="form-label">Flight Number (if
-                                            applicable)
-                                        </label>
-                                        <input type="text" id="departureFlightNumber" class="form-control"
-                                               placeholder="e.g., AI 124">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="departureAirport" class="form-label">Airport</label>
-                                        <input type="text" id="departureAirport" class="form-control"
-                                               placeholder="e.g., Indira Gandhi Airport">
-                                    </div>
-                                </div>
-                                <div class="row" id="departureTrainFields" style="display:none;">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="departureTrainNumber" class="form-label">Train Number (if
-                                            applicable)
-                                        </label>
-                                        <input type="text" id="departureTrainNumber" class="form-control"
-                                               placeholder="e.g., 67890">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="departureStation" class="form-label">Station</label>
-                                        <input type="text" id="departureStation" class="form-control"
-                                               placeholder="e.g., New Delhi">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Buttons -->
-                        <div class="d-grid gap-2">
-                            <button type="button" class="btn btn-warning btn-lg" id="saveTravelBtn">
-                                <i class="bi bi-check-circle"></i> Save Travel Details & Attendees
-                            </button>
-                            <a href="/guest/dashboard" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-left"></i> Cancel and Return to Dashboard
-                            </a>
-                        </div>
-
-                        <!-- Success/Error Messages -->
-                        <div id="travelInfoSuccess" class="alert alert-success mt-3" style="display:none;"></div>
-                        <div id="travelInfoError" class="alert alert-danger mt-3" style="display:none;"></div>
-                        <div id="travelInfoMsgOkBtnWrapper" style="display:none; text-align:center; margin-top:10px;">
-                            <button id="travelInfoMsgOkBtn" class="btn btn-primary">OK</button>
-                            <button id="travelInfoContinueEditBtn" class="btn btn-secondary" style="display:none; margin-left:10px;">Continue Editing</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="container py-3">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
+          <span class="fs-5"><i class="bi bi-airplane"></i> Travel Information</span>
+          <a href="/guest/dashboard" class="btn btn-outline-light btn-sm ms-auto"><i class="bi bi-arrow-left"></i> Back</a>
         </div>
+        <div class="card-body">
+          <p class="text-muted mb-4">Share your travel details to help us to make arrangements for your
+            arrival and stay.
+          </p>
+
+          <!-- Attendees Section (RSVP-style) -->
+          <div class="mb-4">
+            <h4><i class="bi bi-people"></i> Attendees</h4>
+            <div id="attendeesContainer"></div>
+            <button type="button" class="btn btn-primary mt-2" id="addAttendeeBtn" onclick="addAttendee()">
+              + Add Attendee
+            </button>
+            <input type="hidden" name="attendeeCount" id="attendeeCountHidden" value="0">
+            <input type="hidden" name="maxAllowedAttendees" id="maxAllowedAttendeesHidden" value="0">
+            <div class="form-hint mt-2">Add all attendees who will be coming with you</div>
+          </div>
+
+          <div id="attendeeError" class="alert alert-danger" style="display:none;"></div>
+
+          <div id="travelInfoForm">
+            <!-- Arrival Information -->
+            <div class="card mb-4 bg-light">
+              <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-arrow-down-circle"></i> Arrival</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="arrivalMode" class="form-label">Mode of Transport</label>
+                    <select id="arrivalMode" class="form-select">
+                      <option value="">-- Select --</option>
+                      <option value="FLIGHT">✈️ Flight</option>
+                      <option value="TRAIN">🚂 Train</option>
+                      <option value="CAR">🚗 Car</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="arrivalDateTime" class="form-label">Arrival Date & Time</label>
+                    <input type="datetime-local" id="arrivalDateTime" class="form-control">
+                  </div>
+                </div>
+
+                <div class="row" id="arrivalFlightFields" style="display:none;">
+                  <div class="col-md-6 mb-3">
+                    <label for="arrivalFlightNumber" class="form-label">Flight Number (if
+                      applicable)
+                    </label>
+                    <input type="text" id="arrivalFlightNumber" class="form-control"
+                           placeholder="e.g., AI 123">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="arrivalAirport" class="form-label">Airport</label>
+                    <input type="text" id="arrivalAirport" class="form-control"
+                           placeholder="e.g., Indira Gandhi Airport">
+                  </div>
+                </div>
+                <div class="row" id="arrivalTrainFields" style="display:none;">
+                  <div class="col-md-6 mb-3">
+                    <label for="arrivalTrainNumber" class="form-label">Train Number (if
+                      applicable)</label>
+                    <input type="text" id="arrivalTrainNumber" class="form-control"
+                           placeholder="e.g., 12345">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="arrivalStation" class="form-label">Station</label>
+                    <input type="text" id="arrivalStation" class="form-control"
+                           placeholder="e.g., New Delhi">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Departure Information -->
+            <div class="card mb-4 bg-light">
+              <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-arrow-up-circle"></i> Departure</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="departureMode" class="form-label">Mode of Transport</label>
+                    <select id="departureMode" class="form-select">
+                      <option value="">-- Select --</option>
+                      <option value="FLIGHT">✈️ Flight</option>
+                      <option value="TRAIN">🚂 Train</option>
+                      <option value="CAR">🚗 Car</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="departureDateTime" class="form-label">Departure Date & Time</label>
+                    <input type="datetime-local" id="departureDateTime"
+                           class="form-control">
+                  </div>
+                </div>
+
+                <div class="row" id="departureFlightFields" style="display:none;">
+                  <div class="col-md-6 mb-3">
+                    <label for="departureFlightNumber" class="form-label">Flight Number (if
+                      applicable)
+                    </label>
+                    <input type="text" id="departureFlightNumber" class="form-control"
+                           placeholder="e.g., AI 124">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="departureAirport" class="form-label">Airport</label>
+                    <input type="text" id="departureAirport" class="form-control"
+                           placeholder="e.g., Indira Gandhi Airport">
+                  </div>
+                </div>
+                <div class="row" id="departureTrainFields" style="display:none;">
+                  <div class="col-md-6 mb-3">
+                    <label for="departureTrainNumber" class="form-label">Train Number (if
+                      applicable)
+                    </label>
+                    <input type="text" id="departureTrainNumber" class="form-control"
+                           placeholder="e.g., 67890">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="departureStation" class="form-label">Station</label>
+                    <input type="text" id="departureStation" class="form-control"
+                           placeholder="e.g., New Delhi">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-grid gap-2">
+              <button type="button" class="btn btn-warning btn-lg" id="saveTravelBtn">
+                <i class="bi bi-check-circle"></i> Save Travel Details & Attendees
+              </button>
+              <a href="/guest/dashboard" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Cancel and Return to Dashboard
+              </a>
+            </div>
+
+            <!-- Success/Error Messages -->
+            <div id="travelInfoSuccess" class="alert alert-success mt-3" style="display:none;"></div>
+            <div id="travelInfoError" class="alert alert-danger mt-3" style="display:none;"></div>
+            <div id="travelInfoMsgOkBtnWrapper" style="display:none; text-align:center; margin-top:10px;">
+              <button id="travelInfoMsgOkBtn" class="btn btn-primary">OK</button>
+              <button id="travelInfoContinueEditBtn" class="btn btn-secondary" style="display:none; margin-left:10px;">Continue Editing</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
 
 <script th:inline="javascript">
@@ -167,7 +170,9 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    console.log('JS loaded');
+        function goBackToDashboard() {
+            window.location.href = '/guest/dashboard';
+        }
 
         function toggleArrivalFields(shouldClearFields = true) {
             const mode = document.getElementById('arrivalMode').value;
