@@ -50,6 +50,35 @@
 
                     </dl>
 
+                    <div class="mb-3">
+                        <label class="form-label">About</label>
+                        <div th:if="${event.about != null}">
+                            <span th:if="${#strings.endsWith(event.about, '.html')}">
+                                <a th:href="${event.about}" th:text="${event.about}" target="_blank"></a>
+                            </span>
+                            <span th:unless="${#strings.endsWith(event.about, '.html')}">
+                                <span th:text="${event.about}"></span>
+                            </span>
+                        </div>
+                        <div th:if="${event.about == null}">
+                            <span class="text-muted">No about information provided.</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Travel Options</label>
+                        <div th:if="${event.travelOptions != null}">
+                            <span th:if="${#strings.endsWith(event.travelOptions, '.html')}">
+                                <a th:href="${event.travelOptions}" th:text="${event.travelOptions}" target="_blank"></a>
+                            </span>
+                            <span th:unless="${#strings.endsWith(event.travelOptions, '.html')}">
+                                <span th:text="${event.travelOptions}"></span>
+                            </span>
+                        </div>
+                        <div th:if="${event.travelOptions == null}">
+                            <span class="text-muted">No travel options provided.</span>
+                        </div>
+                    </div>
+
                     <div class="d-flex justify-content-between mt-4">
                         <a href="/events" class="btn btn-secondary">
                             <i class="bi bi-arrow-left"></i> Back to Events

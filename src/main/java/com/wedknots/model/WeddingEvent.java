@@ -83,6 +83,14 @@ public class WeddingEvent {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Lob
+    @Column(name= "about")
+    private String about;
+
+    @Lob
+    @Column(name= "travel_options")
+    private String travelOptions;
+
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();

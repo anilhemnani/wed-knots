@@ -579,5 +579,13 @@
         </insert>
 
     </changeSet>
+
+    <!-- 2026-01-30.01 - Add about and travel_options to wedding_event_tbl -->
+    <changeSet id="20260130-01-add-about-traveloptions-to-wedding-event" author="copilot">
+        <addColumn tableName="wedding_event_tbl">
+            <column name="about" type="CLOB"/>
+            <column name="travel_options" type="CLOB"/>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>
 

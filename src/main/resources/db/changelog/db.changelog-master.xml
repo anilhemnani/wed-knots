@@ -8,6 +8,4 @@
     <!-- WedKnots Database - Complete Baseline Schema -->
     <include file="db/changelog/db.changelog-baseline.xml" relativeToChangelogFile="false"/>
 
-    <!-- All other changes are now part of the baseline. -->
-
 </databaseChangeLog>

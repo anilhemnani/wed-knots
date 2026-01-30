@@ -135,6 +135,8 @@ public class EventWebController {
             existing.setPlace(event.getPlace());
             existing.setDefaultMaxAllowedAttendees(event.getDefaultMaxAllowedAttendees());
             existing.setAboutLocationUrl(event.getAboutLocationUrl());
+            existing.setAbout(event.getAbout());
+            existing.setTravelOptions(event.getTravelOptions());
 
             weddingEventRepository.save(existing);
             redirectAttributes.addFlashAttribute("successMessage", "Event updated successfully!");

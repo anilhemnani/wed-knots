@@ -119,6 +119,27 @@
                             </div>
                         </div>
 
+                        <div class="mb-3">
+                            <label for="about">About (text or HTML file path)</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="about" name="about" th:value="${event.about}" placeholder="Enter about text or path to HTML file">
+                                <button class="btn btn-outline-secondary" type="button" onclick="fillAboutHtmlPath()">Auto-fill</button>
+                            </div>
+                            <div class="form-text">Relative path to a page with more information about the event (e.g., /events/{eventId}/about.html).<br>
+                                <b>Recommended:</b> /events/{eventId}/about.html
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="travelOptions">Travel Options (text or HTML file path)</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="travelOptions" name="travelOptions" th:value="${event.travelOptions}" placeholder="Enter travel options or path to HTML file">
+                                <button class="btn btn-outline-secondary" type="button" onclick="fillTravelOptionsHtmlPath()">Auto-fill</button>
+                            </div>
+                            <div class="form-text">Relative path to a page with travel information for the event (e.g., /events/{eventId}/travel_options.html).<br>
+                                <b>Recommended:</b> /events/{eventId}/travel_options.html
+                            </div>
+                        </div>
+
                         <div class="d-flex justify-content-between mt-4">
                             <a href="/events" class="btn btn-secondary">
                                 <i class="bi bi-arrow-left"></i> Cancel
@@ -135,14 +156,28 @@
     </div>
 </div>
 <script>
-function fillAboutLocationUrl() {
-    var eventId = document.querySelector('form').action.match(/events\/(\d+)/);
-    if (eventId && eventId[1]) {
-        document.getElementById('about_location_url').value = '/events/' + eventId[1] + '/about/index.html';
-    } else {
-        document.getElementById('about_location_url').value = '/events/{eventId}/about/index.html';
+    function fillAboutLocationUrl() {
+        var eventId = document.querySelector('form').action.match(/events\/(\d+)/);
+        if (eventId && eventId[1]) {
+            document.getElementById('about_location_url').value = '/events/' + eventId[1] + '/about/index.html';
+        } else {
+            document.getElementById('about_location_url').value = '/events/{eventId}/about/index.html';
+        }
     }
-}
+    function getEventIdFromForm() {
+        var form = document.querySelector('form');
+        if (!form) return null;
+        var match = form.action.match(/events\/(\d+)/);
+        return match ? match[1] : null;
+    }
+    function fillAboutHtmlPath() {
+        var eventId = getEventIdFromForm();
+        document.getElementById('about').value = eventId ? '/events/' + eventId + '/about.html' : '/events/{eventId}/about.html';
+    }
+    function fillTravelOptionsHtmlPath() {
+        var eventId = getEventIdFromForm();
+        document.getElementById('travelOptions').value = eventId ? '/events/' + eventId + '/travel_options.html' : '/events/{eventId}/travel_options.html';
+    }
 </script>
 </body>
 </html>
