@@ -27,7 +27,7 @@ REM Example: release-deploy.bat 1.0.2
 REM Get the project root directory (parent of scripts)
 cd /d "%~dp0.."
 set "PROJECT_ROOT=%CD%"
-set "MAVEN_PATH=C:\tools\apache-maven-3.9.11\bin\mvn.cmd"
+set "MAVEN_PATH=%MAVEN_HOME%\bin\mvn.cmd"
 set "HOSTING_PATH=C:\hosting\wed-knots"
 
 REM Validate Maven is available
