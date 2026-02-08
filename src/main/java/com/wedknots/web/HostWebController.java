@@ -54,6 +54,8 @@ public class HostWebController {
             return "redirect:/events";
         }
         host.setEvent(eventOpt.get());
+        // Always set role to ROLE_HOST for consistency
+        host.setRole("ROLE_HOST");
         hostRepository.save(host);
         return "redirect:/events/" + eventId + "/hosts";
     }
@@ -94,6 +96,8 @@ public class HostWebController {
         }
         host.setId(hostId);
         host.setEvent(eventOpt.get());
+        // Always set role to ROLE_HOST for consistency
+        host.setRole("ROLE_HOST");
         hostRepository.save(host);
         return "redirect:/events/" + eventId + "/hosts";
     }

@@ -115,6 +115,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/whatsapp/send-personal").permitAll()  // Allow WhatsApp personal message API for testing
                 .requestMatchers("/h2-console/**").hasRole("ADMIN")  // Protect H2 console - admin only
                 .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/events/**").hasAnyRole("ADMIN", "HOST")  // Events management for ADMIN and HOST
+                .requestMatchers("/event-image/**").permitAll()  // Allow public access to event images
                 .requestMatchers("/host/**").hasRole("HOST")
                 .requestMatchers("/guest/**").hasRole("GUEST")
                 .requestMatchers("/invitations/**").hasRole("GUEST")  // Guest invitations require GUEST role

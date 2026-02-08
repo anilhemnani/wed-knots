@@ -97,17 +97,27 @@ public class AuthController {
         Optional<User> userOpt = userRepository.findByUsername(user.getUsername());
         if (userOpt.isPresent()) {
             User authenticatedUser = userOpt.get();
+
+            // Ensure role has ROLE_ prefix for Spring Security
+            String role = authenticatedUser.getRole();
+            if (role != null && !role.startsWith("ROLE_")) {
+                role = "ROLE_" + role;
+            }
+
             Authentication auth = new UsernamePasswordAuthenticationToken(
                 authenticatedUser.getUsername(),
                 null,
-                Collections.singletonList(new SimpleGrantedAuthority(authenticatedUser.getRole()))
+                Collections.singletonList(new SimpleGrantedAuthority(role))
             );
             SecurityContextHolder.getContext().setAuthentication(auth);
 
-            // Save authentication to session
-            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+            // Save authentication to session using Spring Security's expected attribute name
+            request.getSession().setAttribute(
+                org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                SecurityContextHolder.getContext()
+            );
 
-            logger.info("Admin user {} authenticated successfully", authenticatedUser.getUsername());
+            logger.info("Admin user {} authenticated successfully with role {}", authenticatedUser.getUsername(), role);
         }
 
         return "redirect:/admin/dashboard";
@@ -138,17 +148,33 @@ public class AuthController {
         Optional<User> userOpt = userRepository.findByEmail(user.getEmail());
         if (userOpt.isPresent()) {
             User authenticatedUser = userOpt.get();
+
+            // Ensure role has ROLE_ prefix for Spring Security
+            String role = authenticatedUser.getRole();
+            logger.info("Host {} found in database with role: '{}'", authenticatedUser.getEmail(), role);
+
+            if (role != null && !role.startsWith("ROLE_")) {
+                role = "ROLE_" + role;
+            }
+
+            logger.info("Authenticating host {} with final role: '{}'", authenticatedUser.getEmail(), role);
+
             Authentication auth = new UsernamePasswordAuthenticationToken(
-                authenticatedUser.getUsername(),
+                authenticatedUser.getEmail(),  // Use email as principal for consistency
                 null,
-                Collections.singletonList(new SimpleGrantedAuthority(authenticatedUser.getRole()))
+                Collections.singletonList(new SimpleGrantedAuthority(role))
             );
             SecurityContextHolder.getContext().setAuthentication(auth);
 
-            // Save authentication to session
-            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+            // Save authentication to session using Spring Security's expected attribute name
+            request.getSession().setAttribute(
+                org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                SecurityContextHolder.getContext()
+            );
 
-            logger.info("Host user {} authenticated successfully", authenticatedUser.getUsername());
+            logger.info("Host user {} authenticated successfully with role {} and saved to session",
+                authenticatedUser.getEmail(), role);
+            logger.info("Authentication authorities: {}", auth.getAuthorities());
         }
 
         // Find all events associated with this host
@@ -196,8 +222,11 @@ public class AuthController {
             );
             SecurityContextHolder.getContext().setAuthentication(auth);
 
-            // Save authentication to session
-            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+            // Save authentication to session using Spring Security's expected attribute name
+            request.getSession().setAttribute(
+                org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                SecurityContextHolder.getContext()
+            );
             // Store guest ID for controllers to resolve invitations consistently
             request.getSession().setAttribute("guestId", guest.getId());
             String guestName = (guest.getContactFirstName() != null ? guest.getContactFirstName() : "") +
@@ -229,17 +258,27 @@ public class AuthController {
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isPresent()) {
             User authenticatedUser = userOpt.get();
+
+            // Ensure role has ROLE_ prefix for Spring Security
+            String role = authenticatedUser.getRole();
+            if (role != null && !role.startsWith("ROLE_")) {
+                role = "ROLE_" + role;
+            }
+
             Authentication auth = new UsernamePasswordAuthenticationToken(
                 authenticatedUser.getUsername(),
                 null,
-                Collections.singletonList(new SimpleGrantedAuthority(authenticatedUser.getRole()))
+                Collections.singletonList(new SimpleGrantedAuthority(role))
             );
             SecurityContextHolder.getContext().setAuthentication(auth);
 
-            // Save authentication to session
-            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+            // Save authentication to session using Spring Security's expected attribute name
+            request.getSession().setAttribute(
+                org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                SecurityContextHolder.getContext()
+            );
 
-            logger.info("Admin user {} authenticated successfully after password setup", authenticatedUser.getUsername());
+            logger.info("Admin user {} authenticated successfully after password setup with role {}", authenticatedUser.getUsername(), role);
         }
 
         return "redirect:/admin/dashboard";
@@ -269,17 +308,26 @@ public class AuthController {
         }
 
         // Authenticate the user after password is set
+        // Ensure role has ROLE_ prefix for Spring Security
+        String role = host.getRole();
+        if (role != null && !role.startsWith("ROLE_")) {
+            role = "ROLE_" + role;
+        }
+
         Authentication auth = new UsernamePasswordAuthenticationToken(
             host.getEmail(),
             null,
-            Collections.singletonList(new SimpleGrantedAuthority(host.getRole()))
+            Collections.singletonList(new SimpleGrantedAuthority(role))
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
 
-        // Save authentication to session
-        request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+        // Save authentication to session using Spring Security's expected attribute name
+        request.getSession().setAttribute(
+            org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            SecurityContextHolder.getContext()
+        );
 
-        logger.info("Host user {} authenticated successfully after password setup", host.getUsername());
+        logger.info("Host user {} authenticated successfully after password setup with role {}", host.getEmail(), role);
 
         // Find all events associated with this host
         java.util.List<com.wedknots.model.WeddingEvent> hostEvents = weddingEventRepository.findByHostEmail(email);

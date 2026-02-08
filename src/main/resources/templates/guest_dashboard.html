@@ -5,10 +5,8 @@
 </head>
 <body class="bg-light">
 <th:block th:replace="~{_navbar :: guestNav}"></th:block>
-<div class="container py-3">
-    <div class="row justify-content-center">
-        <div class="col-12 col-md-10 col-lg-8">
-            <div class="card shadow-sm">
+<div class="container-fluid px-2 px-sm-3 py-3">
+    <div class="card shadow-sm">
                 <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
                     <span class="fs-5" th:text="${event.name}"><i class="bi bi-house"></i> Guest Dashboard</span>
                     <div class="d-flex flex-wrap gap-2 align-items-center ms-auto">
@@ -47,7 +45,7 @@
                     </div>
 
                     <!-- Single event view -->
-                    <div th:if="${singleEvent}" class="mb-4">
+                    <div th:if="${singleEvent}" class="mb-2">
                         <div class="accordion" id="eventAccordion">
                             <!-- About Section -->
                             <div class="accordion-item">
@@ -61,7 +59,8 @@
                                         <div th:if="${event.about != null}">
                                             <!-- Dynamically resolve about fragment path, replacing {eventId} with event.id -->
                                             <div th:if="${#strings.endsWith(event.about, '.html')}">
-                                                <div th:with="aboutPath=${#strings.replace(event.about, '{eventId}', event.id)}">
+                                                <div th:with="rawPath=${#strings.replace(#strings.replace(event.about, '.html', '-fragment.html'), '{eventId}', event.id)},
+                                                              aboutPath=${#strings.startsWith(rawPath, '/') ? #strings.substring(rawPath, 1) : rawPath}">
                                                     <div th:replace="~{${aboutPath}(event=${event}, guest=${eventInvitations[0].guest}, invitation=${eventInvitations[0]}, travelInfo=${eventInvitations[0].guest.travelInfo})}"></div>
                                                 </div>
                                             </div>
@@ -115,7 +114,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <!-- Status chips -->
+                                        <!-- Status Badges -->
                                         <div class="d-flex flex-wrap gap-3 mb-3">
                                             <div>
                                                 <strong>RSVP:</strong>
@@ -210,7 +209,8 @@
                                     <div class="accordion-body">
                                         <div th:if="${event.travelOptions != null}">
                                             <div th:if="${#strings.endsWith(event.travelOptions, '.html')}">
-                                                <div th:with="travelOptionsPath=${#strings.replace(event.travelOptions, '{eventId}', event.id)}">
+                                                <div th:with="rawPath=${#strings.replace(#strings.replace(event.travelOptions, '.html', '-fragment.html'), '{eventId}', event.id)},
+                                                              travelOptionsPath=${#strings.startsWith(rawPath, '/') ? #strings.substring(rawPath, 1) : rawPath}">
                                                     <div th:replace="~{${travelOptionsPath}(event=${event}, guest=${eventInvitations[0].guest}, invitation=${eventInvitations[0]}, travelInfo=${eventInvitations[0].guest.travelInfo})}"></div>
                                                 </div>
                                             </div>

@@ -83,12 +83,10 @@ public class WeddingEvent {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Lob
-    @Column(name= "about")
+    @Column(name = "about", columnDefinition = "text")
     private String about;
 
-    @Lob
-    @Column(name= "travel_options")
+    @Column(name = "travel_options", columnDefinition = "text")
     private String travelOptions;
 
     @PrePersist

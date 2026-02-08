@@ -13,6 +13,8 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password:
+    hikari:
+      auto-commit: false
   jpa:
     hibernate:
       ddl-auto: none
@@ -50,7 +52,7 @@ spring:
             enable: false
 
 server:
-  port: 9090
+  port: 9091
   servlet:
     session:
       timeout: 30m
