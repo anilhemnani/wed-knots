@@ -6,23 +6,50 @@ body {
 }
 
 .card {
-    border-radius: 1rem;
-    box-shadow: 0 4px 24px #0001;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 12px #0001;
     padding-left: 0;
     padding-right: 0;
 }
 
 .card-body {
-    padding: 0.75rem !important;
+    padding: 0.375rem !important;
 }
 
+/* Mobile optimizations */
+@media (max-width: 576px) {
+    .card-body {
+        padding: 0.25rem !important;
+    }
+    .accordion-body {
+        padding: 0.25rem !important;
+    }
+    .accordion-button {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.9rem !important;
+        min-height: 44px; /* Touch-friendly minimum */
+    }
+    .card.card-body.bg-light {
+        padding: 0.25rem !important;
+    }
+}
+
+/* Accordion touch improvements */
 .accordion-button {
-    padding: 0.5rem 1rem !important;
-    font-size: 0.95rem !important;
+    padding: 0.375rem 0.5rem !important;
+    font-size: 0.9rem !important;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    border-color: rgba(0,0,0,.125);
 }
 
 .accordion-body {
-    padding: 0.75rem !important;
+    padding: 0.375rem !important;
 }
 
 
