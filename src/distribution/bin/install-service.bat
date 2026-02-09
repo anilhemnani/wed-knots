@@ -13,6 +13,7 @@ if %ERRORLEVEL% EQU 0 (
     echo Service exists - updating nssm configuration...
     C:\tools\nssm-2.24\win64\nssm.exe set "WedKnots-Springboot" Application "%BIN_DIR%start.bat"
     C:\tools\nssm-2.24\win64\nssm.exe set "WedKnots-Springboot" AppDirectory "%APP_ROOT%"
+    C:\tools\nssm-2.24\win64\nssm.exe set "WedKnots-Springboot" Description "%APP_ROOT%"
     C:\tools\nssm-2.24\win64\nssm.exe set "WedKnots-Springboot" Start SERVICE_AUTO_START
     C:\tools\nssm-2.24\win64\nssm.exe set "WedKnots-Springboot" ObjectName LocalSystem
 ) else (

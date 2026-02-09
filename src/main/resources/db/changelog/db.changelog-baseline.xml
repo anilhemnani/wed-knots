@@ -587,5 +587,10 @@
             <column name="travel_options" type="CLOB"/>
         </addColumn>
     </changeSet>
+
+    <!-- 2026-02-09.01 - Drop unique constraint on guest contact_email + event_id -->
+    <changeSet id="20260209-01-drop-uk-guest-contact-email-event" author="copilot">
+        <dropUniqueConstraint tableName="guest_tbl" constraintName="uk_guest_contact_email_event"/>
+    </changeSet>
 </databaseChangeLog>
 
