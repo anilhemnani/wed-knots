@@ -49,6 +49,48 @@
                 <i class="bi bi-info-circle"></i> No guests added yet. Click "Add Guest" to add your first guest.
             </div>
 
+            <!-- Invitation Status Filters -->
+            <div th:if="${!invitations.isEmpty()}" class="card mb-3 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-funnel"></i> Filter by Invitation Status</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <th:block th:each="invitation : ${invitations}">
+                            <div class="col-md-6 col-lg-4 mb-2">
+                                <label class="form-label" style="font-size: 0.9rem; font-weight: 600;">
+                                    <span th:if="${invitation.invitationType == 'SAVE_THE_DATE'}">💾</span>
+                                    <span th:if="${invitation.invitationType == 'MAIN_INVITATION'}">📬</span>
+                                    <span th:if="${invitation.invitationType == 'REMINDER'}">🔔</span>
+                                    <span th:if="${invitation.invitationType == 'THANK_YOU'}">🙏</span>
+                                    <span th:text="${invitation.title}"></span>
+                                </label>
+                                <div class="btn-group w-100" role="group" th:id="'filter-group-' + ${invitation.id}">
+                                    <button type="button" class="btn btn-sm btn-outline-primary invitation-filter"
+                                            th:data-invitation-id="${invitation.id}"
+                                            data-filter-status="all"
+                                            title="Show all guests">
+                                        📋 All
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-success invitation-filter"
+                                            th:data-invitation-id="${invitation.id}"
+                                            data-filter-status="sent"
+                                            title="Show guests who received this invitation">
+                                        ✅ Sent
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-warning invitation-filter"
+                                            th:data-invitation-id="${invitation.id}"
+                                            data-filter-status="unsent"
+                                            title="Show guests who haven't received this invitation">
+                                        ⭕ Unsent
+                                    </button>
+                                </div>
+                            </div>
+                        </th:block>
+                    </div>
+                </div>
+            </div>
+
             <div th:if="${!guests.isEmpty()}" class="table-responsive">
                 <table class="table table-hover table-striped" id="guestTable">
                     <thead>
@@ -336,6 +378,9 @@ class GuestTableSorter {
         // Initialize table sorter
         const sorter = new GuestTableSorter();
 
+        // Store invitation filter states
+        const invitationFilters = {};
+
         // Fill empty invitation status cells with "not sent" icon
         const tbody = document.querySelector('table tbody');
         const rows = tbody.querySelectorAll('tr:not(.additional-phones-row)');
@@ -349,6 +394,77 @@ class GuestTableSorter {
                 }
             }
         });
+
+        // Initialize invitation filters
+        const filterButtons = document.querySelectorAll('.invitation-filter');
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const invitationId = this.getAttribute('data-invitation-id');
+                const filterStatus = this.getAttribute('data-filter-status');
+
+                // Update filter state
+                invitationFilters[invitationId] = filterStatus;
+
+                // Update button appearance
+                const buttonGroup = document.getElementById('filter-group-' + invitationId);
+                buttonGroup.querySelectorAll('.invitation-filter').forEach(btn => {
+                    btn.classList.remove('btn-primary', 'btn-success', 'btn-warning');
+                    btn.classList.add('btn-outline-primary', 'btn-outline-success', 'btn-outline-warning');
+                });
+
+                // Highlight active filter button
+                if (filterStatus === 'sent') {
+                    this.classList.remove('btn-outline-success');
+                    this.classList.add('btn-success');
+                } else if (filterStatus === 'unsent') {
+                    this.classList.remove('btn-outline-warning');
+                    this.classList.add('btn-warning');
+                } else {
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('btn-primary');
+                }
+
+                // Apply filters
+                applyInvitationFilters();
+            });
+        });
+
+        function applyInvitationFilters() {
+            const tbody = document.querySelector('table tbody');
+            const rows = tbody.querySelectorAll('tr:not(.additional-phones-row)');
+            const invitationHeaders = document.querySelectorAll('th.sortable-header[data-sort-by^="invitation_"]');
+
+            rows.forEach(row => {
+                let showRow = true;
+                const cells = row.querySelectorAll('td');
+
+                // Check each invitation filter
+                invitationHeaders.forEach((header, index) => {
+                    const invitationId = header.getAttribute('data-sort-by').replace('invitation_', '');
+                    const filterStatus = invitationFilters[invitationId];
+
+                    // If no filter set, show row
+                    if (!filterStatus || filterStatus === 'all') {
+                        return;
+                    }
+
+                    const cellIndex = 7 + index;
+                    const cellText = cells[cellIndex].textContent.trim();
+
+                    // Check if invitation was sent
+                    const isSent = cellText.includes('✅') || cellText.includes('✔️') || cellText.includes('⏳') || cellText.includes('❌');
+
+                    if (filterStatus === 'sent' && !isSent) {
+                        showRow = false;
+                    } else if (filterStatus === 'unsent' && isSent) {
+                        showRow = false;
+                    }
+                });
+
+                row.style.display = showRow ? '' : 'none';
+            });
+        }
 
         const expandButtons = document.querySelectorAll('.expand-phones-btn');
 
