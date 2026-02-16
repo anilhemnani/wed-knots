@@ -228,6 +228,9 @@
 </div>
 
 <script>
+// Store invitation filter states at global scope
+const invitationFilters = {};
+
 // Client-side table sorting
 class GuestTableSorter {
     constructor() {
@@ -244,19 +247,33 @@ class GuestTableSorter {
 
     extractGuestData() {
         const tbody = this.table.querySelector('tbody');
+        if (!tbody) {
+            console.log('No tbody found, table might be empty');
+            return;
+        }
+
         const rows = tbody.querySelectorAll('tr:not(.additional-phones-row)');
         const invitationHeaders = this.table.querySelectorAll('th.sortable-header[data-sort-by^="invitation_"]');
 
+        console.log(`Extracting data from ${rows.length} rows, ${invitationHeaders.length} invitation headers`);
+
         this.guestData = Array.from(rows).map(row => {
             const cells = row.querySelectorAll('td');
+
+            // Validate we have enough cells
+            if (cells.length < 7) {
+                console.warn('Row has fewer than 7 cells, skipping:', row);
+                return null;
+            }
+
             const data = {
-                familyName: cells[0].textContent.trim(),
-                contactName: cells[1].textContent.trim(),
-                phone: cells[2].textContent.trim(),
-                city: cells[3].textContent.trim(),
-                country: cells[4].textContent.trim(),
-                side: cells[5].textContent.trim(),
-                maxAttendees: parseInt(cells[6].textContent.trim()) || 0,
+                familyName: cells[0] ? cells[0].textContent.trim() : '',
+                contactName: cells[1] ? cells[1].textContent.trim() : '',
+                phone: cells[2] ? cells[2].textContent.trim() : '',
+                city: cells[3] ? cells[3].textContent.trim() : '',
+                country: cells[4] ? cells[4].textContent.trim() : '',
+                side: cells[5] ? cells[5].textContent.trim() : '',
+                maxAttendees: cells[6] ? parseInt(cells[6].textContent.trim()) || 0 : 0,
                 rowElement: row,
                 phonesRow: document.getElementById('phones-' + row.dataset.guestId) || null
             };
@@ -280,7 +297,7 @@ class GuestTableSorter {
             });
 
             return data;
-        });
+        }).filter(data => data !== null); // Remove any null entries
     }
 
     attachSortListeners() {
@@ -337,11 +354,17 @@ class GuestTableSorter {
 
     updateTable() {
         const tbody = this.table.querySelector('tbody');
+        if (!tbody || !this.guestData) {
+            console.log('No tbody or guestData, skipping table update');
+            return;
+        }
 
         this.guestData.forEach(data => {
-            tbody.appendChild(data.rowElement);
-            if (data.phonesRow) {
-                tbody.appendChild(data.phonesRow);
+            if (data && data.rowElement) {
+                tbody.appendChild(data.rowElement);
+                if (data.phonesRow) {
+                    tbody.appendChild(data.phonesRow);
+                }
             }
         });
     }
@@ -373,16 +396,82 @@ class GuestTableSorter {
     }
 }
 
-    // Handle expandible additional phone numbers
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize table sorter
-        const sorter = new GuestTableSorter();
+// Apply invitation filters to table rows
+function applyInvitationFilters() {
+    const tbody = document.querySelector('table tbody');
+    const rows = tbody.querySelectorAll('tr:not(.additional-phones-row)');
+    const invitationHeaders = document.querySelectorAll('th.sortable-header[data-sort-by^="invitation_"]');
 
-        // Store invitation filter states
-        const invitationFilters = {};
+    console.log('Applying filters. Current state:', invitationFilters);
+    console.log('Found invitation headers:', invitationHeaders.length);
 
-        // Fill empty invitation status cells with "not sent" icon
-        const tbody = document.querySelector('table tbody');
+    rows.forEach((row, rowIdx) => {
+        let showRow = true;
+        const cells = row.querySelectorAll('td');
+        let hasActiveFilters = false;
+
+        // Check if any filter is active
+        for (let invId in invitationFilters) {
+            if (invitationFilters[invId] && invitationFilters[invId] !== 'all') {
+                hasActiveFilters = true;
+                break;
+            }
+        }
+
+        if (!hasActiveFilters) {
+            // No active filters, show all rows
+            row.style.display = '';
+            return;
+        }
+
+        // Check each invitation filter
+        invitationHeaders.forEach((header, index) => {
+            const dataAttr = header.getAttribute('data-sort-by');
+            // Extract invitation ID from "invitation_123" format
+            const invitationIdMatch = dataAttr.match(/invitation_(\d+)/);
+            const invitationId = invitationIdMatch ? invitationIdMatch[1] : null;
+            const filterStatus = invitationId ? invitationFilters[invitationId] : null;
+
+            console.log(`Header ${index}: dataAttr=${dataAttr}, invitationId=${invitationId}, filterStatus=${filterStatus}`);
+
+            // Only apply filter if it's set and not 'all'
+            if (filterStatus && filterStatus !== 'all') {
+                const cellIndex = 7 + index;
+                if (cells[cellIndex]) {
+                    const cellHTML = cells[cellIndex].innerHTML;
+                    const cellText = cells[cellIndex].textContent.trim();
+
+                    // Check if invitation was sent (has any status icon except ⭕)
+                    // Also check if cell is not empty (empty means not sent)
+                    const isSent = cellHTML.includes('✅') || cellHTML.includes('✔️') || cellHTML.includes('⏳') || cellHTML.includes('❌');
+                    const isUnsent = cellHTML.includes('⭕') || cellText === '';
+
+                    console.log(`Row ${rowIdx}, Cell ${cellIndex}: cellText='${cellText}', isSent=${isSent}, isUnsent=${isUnsent}, filter=${filterStatus}`);
+
+                    if (filterStatus === 'sent' && !isSent) {
+                        showRow = false;
+                        console.log(`  -> Hiding (filter=sent, but isSent=false)`);
+                    } else if (filterStatus === 'unsent' && !isUnsent) {
+                        showRow = false;
+                        console.log(`  -> Hiding (filter=unsent, but isUnsent=false)`);
+                    }
+                }
+            }
+        });
+
+        row.style.display = showRow ? '' : 'none';
+        console.log(`Row ${rowIdx}: final display=${row.style.display}`);
+    });
+}
+
+// Handle expandible additional phone numbers
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize table sorter
+    const sorter = new GuestTableSorter();
+
+    // Fill empty invitation status cells with "not sent" icon
+    const tbody = document.querySelector('table tbody');
+    if (tbody) {
         const rows = tbody.querySelectorAll('tr:not(.additional-phones-row)');
 
         rows.forEach(row => {
@@ -394,20 +483,39 @@ class GuestTableSorter {
                 }
             }
         });
+    }
 
-        // Initialize invitation filters
-        const filterButtons = document.querySelectorAll('.invitation-filter');
-        filterButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const invitationId = this.getAttribute('data-invitation-id');
-                const filterStatus = this.getAttribute('data-filter-status');
+    // Initialize invitation filters
+    const filterButtons = document.querySelectorAll('.invitation-filter');
+    console.log(`Found ${filterButtons.length} filter buttons`);
 
-                // Update filter state
-                invitationFilters[invitationId] = filterStatus;
+    // Log all button attributes for debugging
+    filterButtons.forEach((btn, idx) => {
+        const invId = btn.getAttribute('data-invitation-id');
+        const status = btn.getAttribute('data-filter-status');
+        const group = btn.closest('.btn-group');
+        const groupId = group ? group.id : 'none';
+        console.log(`Button ${idx}: invId='${invId}', status='${status}', groupId='${groupId}'`);
+    });
 
-                // Update button appearance
-                const buttonGroup = document.getElementById('filter-group-' + invitationId);
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const invitationId = this.getAttribute('data-invitation-id');
+            const filterStatus = this.getAttribute('data-filter-status');
+
+            console.log(`Filter clicked: invitationId='${invitationId}' (type: ${typeof invitationId}), filterStatus='${filterStatus}'`);
+
+            // Update filter state - store by ID only
+            invitationFilters[invitationId] = filterStatus;
+            console.log('Updated filters object:', invitationFilters);
+            console.log('All keys in invitationFilters:', Object.keys(invitationFilters));
+
+            // Update button appearance
+            const buttonGroup = document.getElementById('filter-group-' + invitationId);
+            console.log(`Looking for button group with id='filter-group-${invitationId}', found:`, buttonGroup ? 'YES' : 'NO');
+
+            if (buttonGroup) {
                 buttonGroup.querySelectorAll('.invitation-filter').forEach(btn => {
                     btn.classList.remove('btn-primary', 'btn-success', 'btn-warning');
                     btn.classList.add('btn-outline-primary', 'btn-outline-success', 'btn-outline-warning');
@@ -424,49 +532,17 @@ class GuestTableSorter {
                     this.classList.remove('btn-outline-primary');
                     this.classList.add('btn-primary');
                 }
+            }
 
-                // Apply filters
-                applyInvitationFilters();
-            });
+            // Apply filters
+            console.log('About to call applyInvitationFilters() with state:', invitationFilters);
+            applyInvitationFilters();
         });
+    });
 
-        function applyInvitationFilters() {
-            const tbody = document.querySelector('table tbody');
-            const rows = tbody.querySelectorAll('tr:not(.additional-phones-row)');
-            const invitationHeaders = document.querySelectorAll('th.sortable-header[data-sort-by^="invitation_"]');
+    // ...existing expand phones and whatsapp button code...
 
-            rows.forEach(row => {
-                let showRow = true;
-                const cells = row.querySelectorAll('td');
-
-                // Check each invitation filter
-                invitationHeaders.forEach((header, index) => {
-                    const invitationId = header.getAttribute('data-sort-by').replace('invitation_', '');
-                    const filterStatus = invitationFilters[invitationId];
-
-                    // If no filter set, show row
-                    if (!filterStatus || filterStatus === 'all') {
-                        return;
-                    }
-
-                    const cellIndex = 7 + index;
-                    const cellText = cells[cellIndex].textContent.trim();
-
-                    // Check if invitation was sent
-                    const isSent = cellText.includes('✅') || cellText.includes('✔️') || cellText.includes('⏳') || cellText.includes('❌');
-
-                    if (filterStatus === 'sent' && !isSent) {
-                        showRow = false;
-                    } else if (filterStatus === 'unsent' && isSent) {
-                        showRow = false;
-                    }
-                });
-
-                row.style.display = showRow ? '' : 'none';
-            });
-        }
-
-        const expandButtons = document.querySelectorAll('.expand-phones-btn');
+    const expandButtons = document.querySelectorAll('.expand-phones-btn');
 
     expandButtons.forEach(button => {
         button.addEventListener('click', function(e) {
