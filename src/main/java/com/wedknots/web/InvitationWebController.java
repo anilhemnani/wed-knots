@@ -173,8 +173,9 @@ public class InvitationWebController {
     @GetMapping("/{invitationId}/send")
     public String showSendInvitation(@PathVariable Long eventId,
                                       @PathVariable Long invitationId,
-                                      @RequestParam(required = false) String side,
-                                      @RequestParam(required = false, defaultValue = "email") String method,
+                                      @RequestParam(required = false, defaultValue = "ALL") String invitationStatus,
+                                      @RequestParam(required = false, defaultValue = "ALL") String side,
+                                      @RequestParam(required = false, defaultValue = "external") String method,
                                       Model model) {
         Optional<WeddingEvent> eventOpt = weddingEventRepository.findById(eventId);
         Optional<Invitation> invitationOpt = invitationService.getInvitationById(invitationId);
@@ -186,27 +187,49 @@ public class InvitationWebController {
         WeddingEvent event = eventOpt.get();
         Invitation invitation = invitationOpt.get();
 
-        // Get guests for the event via repository (avoids filtering all guests)
-        List<Guest> guests;
-        if (side != null && !side.isEmpty() && !side.equalsIgnoreCase("ALL")) {
-            guests = guestRepository.findByEventIdAndSideIgnoreCase(eventId, side);
-        } else {
-            guests = guestRepository.findByEventId(eventId);
-        }
+        // Get all guests for the event
+        List<Guest> allGuests = guestRepository.findByEventId(eventId);
 
-        // Get invitation logs to mark already sent
+        // Get invitation logs for this invitation
         List<InvitationLog> logs = invitationLogService.getLogsByInvitation(invitationId);
         List<Long> sentGuestIds = logs.stream()
                 .map(log -> log.getGuest().getId())
                 .collect(Collectors.toList());
 
+        // Filter guests based on side
+        List<Guest> guests = allGuests;
+        if (side != null && !side.isEmpty() && !side.equalsIgnoreCase("ALL")) {
+            guests = guests.stream()
+                    .filter(g -> g.getSide().equalsIgnoreCase(side))
+                    .collect(Collectors.toList());
+        }
+
+        // Filter guests based on invitation status
+        if ("SENT".equalsIgnoreCase(invitationStatus)) {
+            // Show only guests who have been sent this invitation
+            guests = guests.stream()
+                    .filter(g -> sentGuestIds.contains(g.getId()))
+                    .collect(Collectors.toList());
+        } else if ("UNSENT".equalsIgnoreCase(invitationStatus)) {
+            // Show only guests who have NOT been sent this invitation
+            guests = guests.stream()
+                    .filter(g -> !sentGuestIds.contains(g.getId()))
+                    .collect(Collectors.toList());
+        }
+        // If "ALL", show all guests (or all from selected side)
+
+        // Get enabled delivery options
+        var enabledOptions = deliveryOptionsService.getEnabledDeliveryOptions();
+
         model.addAttribute("event", event);
         model.addAttribute("invitation", invitation);
         model.addAttribute("guests", guests);
         model.addAttribute("sentGuestIds", sentGuestIds);
+        model.addAttribute("selectedStatus", invitationStatus != null ? invitationStatus : "ALL");
         model.addAttribute("selectedSide", side != null ? side : "ALL");
         model.addAttribute("method", method);
-        model.addAttribute("externalMethods", new String[]{"Email", "Phone Call", "SMS", "In-person", "Other"});
+        model.addAttribute("enabledDeliveryOptions", enabledOptions);
+        model.addAttribute("externalMethods", new String[]{"Email", "Phone Call", "SMS", "In-person", "Other", "WhatsApp"});
         return "invitation_send";
     }
 

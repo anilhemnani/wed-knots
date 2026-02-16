@@ -1,12 +1,7 @@
 package com.wedknots.web;
 
-import com.wedknots.model.Guest;
-import com.wedknots.model.GuestPhoneNumber;
-import com.wedknots.model.RSVP;
-import com.wedknots.model.WeddingEvent;
-import com.wedknots.repository.GuestRepository;
-import com.wedknots.repository.RSVPRepository;
-import com.wedknots.repository.WeddingEventRepository;
+import com.wedknots.model.*;
+import com.wedknots.repository.*;
 import com.wedknots.service.GuestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,6 +27,12 @@ public class GuestWebController {
     private RSVPRepository rsvpRepository;
 
     @Autowired
+    private InvitationRepository invitationRepository;
+
+    @Autowired
+    private InvitationLogRepository invitationLogRepository;
+
+    @Autowired
     private GuestService guestService;
 
     @Autowired
@@ -46,8 +47,17 @@ public class GuestWebController {
         }
         WeddingEvent event = eventOpt.get();
         List<Guest> guests = guestRepository.findByEventIdWithPhones(eventId);
+
+        // Fetch all invitations for this event
+        List<Invitation> invitations = invitationRepository.findByEventId(eventId);
+
+        // Fetch all invitation logs for this event to determine which guests received which invitations
+        List<InvitationLog> invitationLogs = invitationLogRepository.findByEventId(eventId);
+
         model.addAttribute("event", event);
         model.addAttribute("guests", guests);
+        model.addAttribute("invitations", invitations);
+        model.addAttribute("invitationLogs", invitationLogs);
         return "guest_list";
     }
 

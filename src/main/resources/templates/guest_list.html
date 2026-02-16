@@ -50,18 +50,45 @@
             </div>
 
             <div th:if="${!guests.isEmpty()}" class="table-responsive">
-                <table class="table table-hover table-striped">
+                <table class="table table-hover table-striped" id="guestTable">
                     <thead>
                     <tr>
-                        <th>Family Name</th>
-                        <th>Contact Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>City</th>
-                        <th>Country</th>
-                        <th>Side</th>
-                        <th>Max Attendees</th>
+                        <th style="cursor: pointer; user-select: none;" class="sortable-header" data-sort-by="familyName">
+                            Family Name <i class="bi bi-arrow-down-up text-muted" style="font-size: 0.75rem;"></i>
+                        </th>
+                        <th style="cursor: pointer; user-select: none;" class="sortable-header" data-sort-by="contactName">
+                            Contact Name <i class="bi bi-arrow-down-up text-muted" style="font-size: 0.75rem;"></i>
+                        </th>
+                        <th style="cursor: pointer; user-select: none;" class="sortable-header" data-sort-by="contactEmail">
+                            Email <i class="bi bi-arrow-down-up text-muted" style="font-size: 0.75rem;"></i>
+                        </th>
+                        <th style="cursor: pointer; user-select: none;" class="sortable-header" data-sort-by="phone">
+                            Phone <i class="bi bi-arrow-down-up text-muted" style="font-size: 0.75rem;"></i>
+                        </th>
+                        <th style="cursor: pointer; user-select: none;" class="sortable-header" data-sort-by="city">
+                            City <i class="bi bi-arrow-down-up text-muted" style="font-size: 0.75rem;"></i>
+                        </th>
+                        <th style="cursor: pointer; user-select: none;" class="sortable-header" data-sort-by="country">
+                            Country <i class="bi bi-arrow-down-up text-muted" style="font-size: 0.75rem;"></i>
+                        </th>
+                        <th style="cursor: pointer; user-select: none;" class="sortable-header" data-sort-by="side">
+                            Side <i class="bi bi-arrow-down-up text-muted" style="font-size: 0.75rem;"></i>
+                        </th>
+                        <th style="cursor: pointer; user-select: none;" class="sortable-header" data-sort-by="maxAttendees">
+                            Max Attendees <i class="bi bi-arrow-down-up text-muted" style="font-size: 0.75rem;"></i>
+                        </th>
+                        <th colspan="10" class="text-center">Invitation Status</th>
                         <th class="text-end">Actions</th>
+                    </tr>
+                    <tr th:if="${!invitations.isEmpty()}">
+                        <th colspan="8"></th>
+                        <th:block th:each="invitation : ${invitations}">
+                            <th class="text-center" style="font-size: 0.85rem; max-width: 100px;">
+                                <small th:text="${invitation.invitationType}"></small><br>
+                                <small class="text-muted" th:text="${invitation.title}"></small>
+                            </th>
+                        </th:block>
+                        <th></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -93,6 +120,48 @@
                             <td th:text="${guest.country != null ? guest.country : '-'}"></td>
                             <td th:text="${guest.side}"></td>
                             <td th:text="${guest.maxAttendees}"></td>
+
+                            <!-- Invitation Status Cells -->
+                            <th:block th:each="invitation : ${invitations}">
+                                <td class="text-center">
+                                    <th:block th:set="hasSentInvitation = false">
+                                        <th:block th:each="log : ${invitationLogs}">
+                                            <th:block th:if="${log.invitation.id == invitation.id && log.guest.id == guest.id}">
+                                                <th:block th:if="${log.deliveryStatus == 'SENT'}" th:remove="tag">
+                                                    <th:block th:set="hasSentInvitation = true"></th:block>
+                                                    <span class="badge bg-success" title="Sent">
+                                                        <i class="bi bi-check-circle"></i> Sent
+                                                    </span>
+                                                </th:block>
+                                                <th:block th:if="${log.deliveryStatus == 'DELIVERED'}" th:remove="tag">
+                                                    <th:block th:set="hasSentInvitation = true"></th:block>
+                                                    <span class="badge bg-success" title="Delivered">
+                                                        <i class="bi bi-check2-circle"></i> Delivered
+                                                    </span>
+                                                </th:block>
+                                                <th:block th:if="${log.deliveryStatus == 'FAILED'}" th:remove="tag">
+                                                    <th:block th:set="hasSentInvitation = true"></th:block>
+                                                    <span class="badge bg-danger" title="Failed">
+                                                        <i class="bi bi-exclamation-circle"></i> Failed
+                                                    </span>
+                                                </th:block>
+                                                <th:block th:if="${log.deliveryStatus == 'PENDING'}" th:remove="tag">
+                                                    <th:block th:set="hasSentInvitation = true"></th:block>
+                                                    <span class="badge bg-warning" title="Pending">
+                                                        <i class="bi bi-hourglass"></i> Pending
+                                                    </span>
+                                                </th:block>
+                                            </th:block>
+                                        </th:block>
+                                        <th:block th:if="!${hasSentInvitation}">
+                                            <span class="badge bg-light text-dark" title="Not sent">
+                                                <i class="bi bi-dash-circle"></i>
+                                            </span>
+                                        </th:block>
+                                    </th:block>
+                                </td>
+                            </th:block>
+
                             <td class="text-end">
                                 <a th:href="@{/events/{eventId}/guests/{id}/edit(eventId=${event.id},id=${guest.id})}" class="btn btn-sm btn-warning me-1">
                                     <i class="bi bi-pencil-fill"></i>
@@ -143,8 +212,136 @@
 </div>
 
 <script>
+// Client-side table sorting
+class GuestTableSorter {
+    constructor() {
+        this.table = document.getElementById('guestTable');
+        this.currentSort = { column: null, ascending: true };
+        this.guestData = [];
+        this.init();
+    }
+
+    init() {
+        this.extractGuestData();
+        this.attachSortListeners();
+    }
+
+    extractGuestData() {
+        const tbody = this.table.querySelector('tbody');
+        const rows = tbody.querySelectorAll('tr:not(.additional-phones-row)');
+
+        this.guestData = Array.from(rows).map(row => {
+            const cells = row.querySelectorAll('td');
+            return {
+                familyName: cells[0].textContent.trim(),
+                contactName: cells[1].textContent.trim(),
+                contactEmail: cells[2].textContent.trim(),
+                phone: cells[3].textContent.trim(),
+                city: cells[4].textContent.trim(),
+                country: cells[5].textContent.trim(),
+                side: cells[6].textContent.trim(),
+                maxAttendees: parseInt(cells[7].textContent.trim()) || 0,
+                rowElement: row,
+                phonesRow: document.getElementById('phones-' + row.dataset.guestId) || null
+            };
+        });
+    }
+
+    attachSortListeners() {
+        const headers = this.table.querySelectorAll('.sortable-header');
+        headers.forEach(header => {
+            header.addEventListener('click', (e) => {
+                const column = header.dataset.sortBy;
+                this.sort(column);
+            });
+        });
+    }
+
+    sort(column) {
+        // Toggle sort direction if same column clicked
+        if (this.currentSort.column === column) {
+            this.currentSort.ascending = !this.currentSort.ascending;
+        } else {
+            this.currentSort.column = column;
+            this.currentSort.ascending = true;
+        }
+
+        // Sort data
+        this.guestData.sort((a, b) => {
+            let aVal = a[column];
+            let bVal = b[column];
+
+            // Handle null/empty values
+            if (aVal === '-' || aVal === '') aVal = null;
+            if (bVal === '-' || bVal === '') bVal = null;
+
+            // Numbers
+            if (typeof aVal === 'number') {
+                return this.currentSort.ascending ? aVal - bVal : bVal - aVal;
+            }
+
+            // Strings
+            if (typeof aVal === 'string') {
+                aVal = aVal.toLowerCase();
+                bVal = bVal.toLowerCase();
+                if (this.currentSort.ascending) {
+                    return aVal.localeCompare(bVal);
+                } else {
+                    return bVal.localeCompare(aVal);
+                }
+            }
+
+            return 0;
+        });
+
+        // Update table
+        this.updateTable();
+        this.updateSortIndicators();
+    }
+
+    updateTable() {
+        const tbody = this.table.querySelector('tbody');
+
+        this.guestData.forEach(data => {
+            tbody.appendChild(data.rowElement);
+            if (data.phonesRow) {
+                tbody.appendChild(data.phonesRow);
+            }
+        });
+    }
+
+    updateSortIndicators() {
+        const headers = this.table.querySelectorAll('.sortable-header');
+        headers.forEach(header => {
+            const icon = header.querySelector('i');
+            const column = header.dataset.sortBy;
+
+            if (column === this.currentSort.column) {
+                // Remove old classes
+                icon.classList.remove('bi-arrow-down-up');
+                header.classList.remove('table-active');
+
+                // Add visual indicator
+                if (this.currentSort.ascending) {
+                    icon.className = 'bi bi-sort-up text-primary';
+                } else {
+                    icon.className = 'bi bi-sort-down text-primary';
+                }
+                header.classList.add('table-active');
+                header.style.backgroundColor = 'rgba(13, 110, 253, 0.1)';
+            } else {
+                icon.className = 'bi bi-arrow-down-up text-muted';
+                header.style.backgroundColor = 'transparent';
+            }
+        });
+    }
+}
+
 // Handle expandible additional phone numbers
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize table sorter
+    const sorter = new GuestTableSorter();
+
     const expandButtons = document.querySelectorAll('.expand-phones-btn');
 
     expandButtons.forEach(button => {

@@ -66,37 +66,24 @@
                 <div class="col-md-8">
                     <label class="form-label"><strong>Select Sending Method:</strong></label>
                     <div class="btn-group w-100 flex-wrap" role="group" id="methodGroup">
-                        <input type="radio" class="btn-check" name="method" id="methodEmail" value="email" checked>
-                        <label class="btn btn-outline-primary" for="methodEmail">
-                            <i class="bi bi-envelope"></i> Email
-                        </label>
-
-                        <input type="radio" class="btn-check" name="method" id="methodSms" value="sms">
-                        <label class="btn btn-outline-primary" for="methodSms">
-                            <i class="bi bi-chat-dots"></i> SMS
-                        </label>
-
-                        <input type="radio" class="btn-check" name="method" id="methodWap" value="whatsapp_personal">
-                        <label class="btn btn-outline-success" for="methodWap">
-                            <i class="bi bi-whatsapp"></i> WhatsApp (Personal)
-                        </label>
-
-                        <input type="radio" class="btn-check" name="method" id="methodAdb" value="whatsapp_adb">
-                        <label class="btn btn-outline-success" for="methodAdb">
-                            <i class="bi bi-phone"></i> WhatsApp (ADB)
-                        </label>
-
-                        <input type="radio" class="btn-check" name="method" id="methodExternal" value="external">
-                        <label class="btn btn-outline-info" for="methodExternal">
-                            <i class="bi bi-person-check"></i> Mark as Sent Externally
-                        </label>
+                        <!-- Dynamically generate buttons for enabled delivery options -->
+                        <th:block th:each="option : ${enabledDeliveryOptions}">
+                            <input type="radio" class="btn-check" name="method" th:id="'method' + ${option.code}"
+                                   th:value="${option.code}"
+                                   th:checked="${option.code == 'external'}" >
+                            <label class="btn" th:for="'method' + ${option.code}"
+                                   th:classappend="${option.code == 'external' ? 'btn-info' : option.code.startsWith('whatsapp') ? 'btn-outline-success' : option.code == 'sms' ? 'btn-outline-primary' : 'btn-outline-primary'}">
+                                <i th:class="'bi ' + ${option.icon}"></i> <span th:text="${option.name}"></span>
+                            </label>
+                        </th:block>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <label for="externalMethodSelect" class="form-label"><strong>External Method:</strong></label>
-                    <select id="externalMethodSelect" name="externalMethod" class="form-select" disabled style="display: none;">
+                    <select id="externalMethodSelect" name="externalMethod" class="form-select" style="display: none;">
                         <option value="">-- Select Method --</option>
-                        <option th:each="method : ${externalMethods}" th:value="${method}" th:text="${method}"></option>
+                        <option value="WhatsApp" selected>WhatsApp</option>
+                        <option th:each="method : ${externalMethods}" th:unless="${method == 'WhatsApp'}" th:value="${method}" th:text="${method}"></option>
                     </select>
                     <div id="externalMethodInfo" class="alert alert-info mt-2" style="display: none; margin-bottom: 0;">
                         <small><i class="bi bi-info-circle"></i> Guest invitation will be marked as sent via the selected method without actually sending a message.</small>
@@ -104,31 +91,48 @@
                 </div>
             </div>
 
-            <!-- Side Filter -->
-            <div class="row">
+            <!-- Invitation Status Filter -->
+            <div class="row mb-3">
                 <div class="col-md-6">
-                    <label class="form-label">Filter by Side:</label>
+                    <label class="form-label"><strong>Filter by Invitation Status:</strong></label>
                     <div class="btn-group w-100" role="group">
-                        <a th:href="@{/events/{eventId}/invitations/{invId}/send(eventId=${event.id},invId=${invitation.id},side=ALL)}"
-                           th:class="${selectedSide == 'ALL' ? 'btn btn-primary' : 'btn btn-outline-primary'}">
-                            All Guests
+                        <a th:href="@{/events/{eventId}/invitations/{invId}/send(eventId=${event.id},invId=${invitation.id},invitationStatus=ALL,side=${selectedSide})}"
+                           th:class="${selectedStatus == 'ALL' ? 'btn btn-primary' : 'btn btn-outline-primary'}">
+                            <i class="bi bi-list"></i> All Guests
                         </a>
-                        <a th:href="@{/events/{eventId}/invitations/{invId}/send(eventId=${event.id},invId=${invitation.id},side=Bride)}"
-                           th:class="${selectedSide == 'Bride' ? 'btn btn-primary' : 'btn btn-outline-primary'}">
-                            Bride Side
+                        <a th:href="@{/events/{eventId}/invitations/{invId}/send(eventId=${event.id},invId=${invitation.id},invitationStatus=SENT,side=${selectedSide})}"
+                           th:class="${selectedStatus == 'SENT' ? 'btn btn-primary' : 'btn btn-outline-primary'}">
+                            <i class="bi bi-check-circle"></i> Sent
                         </a>
-                        <a th:href="@{/events/{eventId}/invitations/{invId}/send(eventId=${event.id},invId=${invitation.id},side=Groom)}"
-                           th:class="${selectedSide == 'Groom' ? 'btn btn-primary' : 'btn btn-outline-primary'}">
-                            Groom Side
-                        </a>
-                        <a th:href="@{/events/{eventId}/invitations/{invId}/send(eventId=${event.id},invId=${invitation.id},side=Both)}"
-                           th:class="${selectedSide == 'Both' ? 'btn btn-primary' : 'btn btn-outline-primary'}">
-                            Both Sides
+                        <a th:href="@{/events/{eventId}/invitations/{invId}/send(eventId=${event.id},invId=${invitation.id},invitationStatus=UNSENT,side=${selectedSide})}"
+                           th:class="${selectedStatus == 'UNSENT' ? 'btn btn-primary' : 'btn btn-outline-primary'}">
+                            <i class="bi bi-envelope"></i> Unsent
                         </a>
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Quick Actions:</label>
+                    <label class="form-label"><strong>Filter by Side:</strong></label>
+                    <div class="btn-group w-100" role="group">
+                        <a th:href="@{/events/{eventId}/invitations/{invId}/send(eventId=${event.id},invId=${invitation.id},invitationStatus=${selectedStatus},side=ALL)}"
+                           th:class="${selectedSide == 'ALL' ? 'btn btn-primary' : 'btn btn-outline-primary'}">
+                            All Sides
+                        </a>
+                        <a th:href="@{/events/{eventId}/invitations/{invId}/send(eventId=${event.id},invId=${invitation.id},invitationStatus=${selectedStatus},side=Bride)}"
+                           th:class="${selectedSide == 'Bride' ? 'btn btn-primary' : 'btn btn-outline-primary'}">
+                            Bride Side
+                        </a>
+                        <a th:href="@{/events/{eventId}/invitations/{invId}/send(eventId=${event.id},invId=${invitation.id},invitationStatus=${selectedStatus},side=Groom)}"
+                           th:class="${selectedSide == 'Groom' ? 'btn btn-primary' : 'btn btn-outline-primary'}">
+                            Groom Side
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row">
+                <div class="col-md-12">
+                    <label class="form-label"><strong>Quick Actions:</strong></label>
                     <div class="btn-group w-100" role="group">
                         <button type="button" class="btn btn-outline-secondary" onclick="selectAll()">
                             <i class="bi bi-check-all"></i> Select All
@@ -287,8 +291,8 @@
         </div>
 
         <!-- Hidden fields for method submission -->
-        <input type="hidden" id="hiddenMethod" name="method" value="email">
-        <input type="hidden" id="hiddenExternalMethod" name="externalMethod" value="">
+        <input type="hidden" id="hiddenMethod" name="method" value="external">
+        <input type="hidden" id="hiddenExternalMethod" name="externalMethod" value="WhatsApp">
     </form>
 </div>
 
@@ -407,13 +411,17 @@
                     smsAlert.style.display = 'block';
                     sendBtnLabel.innerHTML = '<i class="bi bi-chat-dots"></i> Send Invitations';
                     break;
-                case 'whatsapp_personal':
+                case 'whatsapp-personal':
                     wapAlert.style.display = 'block';
                     sendBtnLabel.innerHTML = '<i class="bi bi-whatsapp"></i> Send Invitations';
                     break;
-                case 'whatsapp_adb':
+                case 'whatsapp-adb':
                     adbAlert.style.display = 'block';
                     sendBtnLabel.innerHTML = '<i class="bi bi-phone"></i> Send Invitations';
+                    break;
+                case 'whatsapp-business':
+                    wapAlert.style.display = 'block';
+                    sendBtnLabel.innerHTML = '<i class="bi bi-whatsapp"></i> Send Invitations';
                     break;
             }
         }
