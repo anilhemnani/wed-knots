@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- ===== Event Activities/Schedule Table ===== -->
+
+    <!-- 1. event_activity_tbl - Activities and ceremonies for wedding events -->
+    <changeSet id="event-activity-1-create-table" author="wedknots">
+        <createTable tableName="event_activity_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="location" type="VARCHAR(255)"/>
+            <column name="start_time" type="TIMESTAMP"/>
+            <column name="end_time" type="TIMESTAMP"/>
+            <column name="activity_type" type="VARCHAR(50)" defaultValue="ACTIVITY"/>
+            <column name="visible_to_guests" type="BOOLEAN" defaultValueBoolean="true"/>
+            <column name="dress_code" type="VARCHAR(255)"/>
+            <column name="notes" type="TEXT"/>
+            <column name="sort_order" type="INT"/>
+            <column name="event_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="event_activity_tbl" baseColumnNames="event_id"
+                                 referencedTableName="wedding_event_tbl" referencedColumnNames="id"
+                                 constraintName="fk_event_activity_event" onDelete="CASCADE"/>
+        <createIndex tableName="event_activity_tbl" indexName="idx_event_activity_event_id">
+            <column name="event_id"/>
+        </createIndex>
+        <createIndex tableName="event_activity_tbl" indexName="idx_event_activity_start_time">
+            <column name="start_time"/>
+        </createIndex>
+        <createIndex tableName="event_activity_tbl" indexName="idx_event_activity_type">
+            <column name="activity_type"/>
+        </createIndex>
+        <createIndex tableName="event_activity_tbl" indexName="idx_event_activity_visible">
+            <column name="visible_to_guests"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
+

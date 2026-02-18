@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Event Schedule (Admin)</title>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
+    <style>
+        .type-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .type-ceremony { background-color: #9c27b0; color: #fff; }
+        .type-activity { background-color: #2196f3; color: #fff; }
+        .type-meal { background-color: #ff9800; color: #fff; }
+        .type-transportation { background-color: #607d8b; color: #fff; }
+        .type-accommodation { background-color: #795548; color: #fff; }
+        .type-other { background-color: #9e9e9e; color: #fff; }
+        .visibility-icon { font-size: 1.2rem; }
+        .timeline-date {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .activity-card {
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .activity-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .activity-card.hidden-activity {
+            opacity: 0.6;
+            border-left-color: #dc3545;
+        }
+        .time-badge {
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        .stat-card {
+            border-radius: 10px;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="bg-light">
+<th:block th:replace="~{_navbar :: adminNav}"></th:block>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="bi bi-calendar-event"></i> Event Schedule (Admin)</h1>
+            <p class="text-muted" th:text="'Schedule for ' + ${event.name}"></p>
+        </div>
+        <div class="btn-group">
+            <a th:href="@{/admin/events/{id}/schedule/new(id=${event.id})}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Add Activity
+            </a>
+            <a th:href="@{/admin/events/{id}(id=${event.id})}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Event
+            </a>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle"></i> <span th:text="${success}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> <span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0" th:text="${totalCount}">0</h3>
+                    <small>Total Activities</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card" style="background-color: #9c27b0; color: white;">
+                <div class="card-body text-center">
+                    <h3 class="mb-0" th:text="${ceremonyCount}">0</h3>
+                    <small>Ceremonies</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0" th:text="${activityCount}">0</h3>
+                    <small>Activities</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3 class="mb-0" th:text="${mealCount}">0</h3>
+                    <small>Meals</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filters</h5>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/admin/events/{id}/schedule(id=${event.id})}" method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Activity Type</label>
+                    <select name="type" class="form-select">
+                        <option value="">All Types</option>
+                        <option th:each="t : ${types}"
+                                th:value="${t}"
+                                th:text="${t}"
+                                th:selected="${selectedType != null && selectedType == t}">
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Date</label>
+                    <select name="date" class="form-select">
+                        <option value="">All Dates</option>
+                        <option th:each="d : ${availableDates}"
+                                th:value="${d}"
+                                th:text="${#temporals.format(d, 'EEE, dd MMM yyyy')}"
+                                th:selected="${selectedDate != null && selectedDate.equals(d)}">
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Visibility</label>
+                    <select name="visibleOnly" class="form-select">
+                        <option value="">All Activities</option>
+                        <option value="true" th:selected="${visibleOnly == true}">Visible to Guests</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                    <a th:href="@{/admin/events/{id}/schedule(id=${event.id})}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Schedule Timeline -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-clock-history"></i> Schedule Timeline</h5>
+            <span class="badge bg-light text-dark" th:text="${activities.size()} + ' activities'"></span>
+        </div>
+        <div class="card-body">
+            <div th:if="${activities.isEmpty()}" class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No activities scheduled yet. Click "Add Activity" to create your first activity.
+            </div>
+
+            <!-- Group by Date -->
+            <div th:if="${!groupedActivities.isEmpty()}" th:each="entry : ${groupedActivities}">
+                <div class="timeline-date mb-3">
+                    <i class="bi bi-calendar3"></i>
+                    <span th:text="${#temporals.format(entry.key, 'EEEE, dd MMMM yyyy')}"></span>
+                </div>
+
+                <div th:each="activity : ${entry.value}" class="card activity-card mb-3"
+                     th:classappend="${!activity.visibleToGuests} ? 'hidden-activity' : ''">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-2 text-center">
+                                <div class="time-badge bg-light p-2 rounded">
+                                    <div th:if="${activity.startTime != null}">
+                                        <strong th:text="${#temporals.format(activity.startTime, 'HH:mm')}"></strong>
+                                    </div>
+                                    <div th:if="${activity.endTime != null}" class="text-muted small">
+                                        to <span th:text="${#temporals.format(activity.endTime, 'HH:mm')}"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5 class="mb-1">
+                                    <span th:text="${activity.name}"></span>
+                                    <span class="badge type-badge ms-2"
+                                          th:classappend="'type-' + ${activity.activityType.name().toLowerCase()}"
+                                          th:text="${activity.activityType}"></span>
+                                </h5>
+                                <p th:if="${activity.description != null}" class="text-muted mb-1" th:text="${activity.description}"></p>
+                                <small class="text-muted">
+                                    <span th:if="${activity.location != null}">
+                                        <i class="bi bi-geo-alt"></i> <span th:text="${activity.location}"></span>
+                                    </span>
+                                    <span th:if="${activity.dressCode != null}" class="ms-3">
+                                        <i class="bi bi-person-badge"></i> <span th:text="${activity.dressCode}"></span>
+                                    </span>
+                                </small>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <form th:action="@{/admin/events/{eventId}/schedule/{activityId}/toggle-visibility(eventId=${event.id},activityId=${activity.id})}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm"
+                                            th:classappend="${activity.visibleToGuests} ? 'btn-outline-success' : 'btn-outline-danger'"
+                                            th:title="${activity.visibleToGuests} ? 'Visible to guests - Click to hide' : 'Hidden from guests - Click to show'">
+                                        <i class="bi visibility-icon" th:classappend="${activity.visibleToGuests} ? 'bi-eye' : 'bi-eye-slash'"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <a th:href="@{/admin/events/{eventId}/schedule/{activityId}/edit(eventId=${event.id},activityId=${activity.id})}"
+                                   class="btn btn-sm btn-warning">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form th:action="@{/admin/events/{eventId}/schedule/{activityId}/delete(eventId=${event.id},activityId=${activity.id})}"
+                                      method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Are you sure you want to delete this activity?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

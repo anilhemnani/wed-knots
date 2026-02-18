@@ -112,6 +112,12 @@
                         <a th:href="@{/events/{id}/guests(id=${event.id})}" class="btn btn-outline-primary">
                             <i class="bi bi-person-lines-fill"></i> Manage Guests
                         </a>
+                        <a th:href="@{/events/{id}/schedule(id=${event.id})}" class="btn btn-outline-info">
+                            <i class="bi bi-calendar-event"></i> Manage Schedule
+                        </a>
+                        <a th:href="@{/events/{id}/items(id=${event.id})}" class="btn btn-outline-warning">
+                            <i class="bi bi-box-seam"></i> Manage Items
+                        </a>
                     </div>
                 </div>
             </div>

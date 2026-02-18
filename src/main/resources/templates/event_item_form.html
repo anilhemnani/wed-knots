@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${isNew} ? 'Add Item' : 'Edit Item'">Item Form</title>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
+</head>
+<body class="bg-light">
+<th:block th:replace="~{_navbar :: hostNav}"></th:block>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi" th:classappend="${isNew} ? 'bi-plus-circle' : 'bi-pencil'"></i>
+                        <span th:text="${isNew} ? 'Add New Item' : 'Edit Item'"></span>
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form th:action="${isNew} ? @{/events/{id}/items/new(id=${event.id})} : @{/events/{eventId}/items/{itemId}/edit(eventId=${event.id},itemId=${item.id})}"
+                          method="POST">
+
+                        <div class="mb-3">
+                            <label class="form-label">Item Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control"
+                                   th:value="${item.name}" required placeholder="e.g., Wedding Flowers">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="2"
+                                      th:text="${item.description}" placeholder="Optional description"></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Quantity</label>
+                                <input type="number" name="quantity" class="form-control"
+                                       th:value="${item.quantity}" min="0" placeholder="e.g., 100">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Unit</label>
+                                <input type="text" name="unit" class="form-control"
+                                       th:value="${item.unit}" placeholder="e.g., pieces, kg, boxes">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Unit Price (₹)</label>
+                                <input type="number" name="unitPrice" class="form-control" step="0.01"
+                                       th:value="${item.unitPrice}" min="0" placeholder="e.g., 50.00">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Supplier</label>
+                                <select name="supplierId" class="form-select">
+                                    <option value="">-- No Supplier --</option>
+                                    <option th:each="supplier : ${suppliers}"
+                                            th:value="${supplier.id}"
+                                            th:text="${supplier.name} + (${supplier.city != null ? ' (' + supplier.city + ')' : ''})"
+                                            th:selected="${item.supplier != null && item.supplier.id == supplier.id}">
+                                    </option>
+                                </select>
+                                <small class="text-muted">
+                                    <a th:href="@{/events/{id}/items/suppliers/new(id=${event.id})}" target="_blank">
+                                        + Add new supplier
+                                    </a>
+                                </small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Needed By Date</label>
+                                <input type="date" name="neededByDate" class="form-control"
+                                       th:value="${item.neededByDate}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option th:each="s : ${statuses}"
+                                        th:value="${s}"
+                                        th:text="${s}"
+                                        th:selected="${item.status != null && item.status == s}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Needed For (Activity/Ceremony)</label>
+                                <select name="activityId" class="form-select">
+                                    <option value="">-- No Activity --</option>
+                                    <option th:each="activity : ${activities}"
+                                            th:value="${activity.id}"
+                                            th:text="${activity.name} + ' (' + ${activity.activityType} + ')'"
+                                            th:selected="${item.neededForActivity != null && item.neededForActivity.id == activity.id}">
+                                    </option>
+                                </select>
+                                <small class="text-muted">
+                                    <a th:href="@{/events/{id}/schedule/new(id=${event.id})}" target="_blank">
+                                        + Add new activity
+                                    </a>
+                                </small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Responsible Person</label>
+                                <input type="text" name="responsible" class="form-control"
+                                       th:value="${item.responsible}" placeholder="e.g., John Doe">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea name="notes" class="form-control" rows="2"
+                                      th:text="${item.notes}" placeholder="Any additional notes"></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a th:href="@{/events/{id}/items(id=${event.id})}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i>
+                                <span th:text="${isNew} ? 'Create Item' : 'Save Changes'"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

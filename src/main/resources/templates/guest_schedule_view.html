@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Event Schedule</title>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
+    <style>
+        .type-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .type-ceremony { background-color: #9c27b0; color: #fff; }
+        .type-activity { background-color: #2196f3; color: #fff; }
+        .type-meal { background-color: #ff9800; color: #fff; }
+        .type-transportation { background-color: #607d8b; color: #fff; }
+        .type-accommodation { background-color: #795548; color: #fff; }
+        .type-other { background-color: #9e9e9e; color: #fff; }
+        .timeline-date {
+            background: linear-gradient(135deg, #e91e63 0%, #9c27b0 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        .activity-card {
+            border-left: 4px solid #e91e63;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-radius: 10px;
+        }
+        .activity-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .activity-card.ongoing {
+            border-left-color: #4caf50;
+            background-color: #e8f5e9;
+        }
+        .activity-card.completed {
+            opacity: 0.7;
+            border-left-color: #9e9e9e;
+        }
+        .time-badge {
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        .upcoming-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+        }
+        .dress-code-badge {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+<th:block th:replace="~{_guest_mobile_shell :: guestNav}"></th:block>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-calendar-heart"></i> Event Schedule</h2>
+            <p class="text-muted mb-0" th:text="${event.name}"></p>
+        </div>
+        <a th:href="@{/guest/dashboard}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <!-- Upcoming Activities Card -->
+    <div th:if="${!upcomingActivities.isEmpty()}" class="card upcoming-card mb-4 shadow">
+        <div class="card-body">
+            <h5 class="card-title mb-3">
+                <i class="bi bi-clock"></i> Coming Up Next
+            </h5>
+            <div th:each="activity, iterStat : ${upcomingActivities}" th:if="${iterStat.index < 3}">
+                <div class="d-flex justify-content-between align-items-center py-2"
+                     th:classappend="${!iterStat.last} ? 'border-bottom border-light' : ''">
+                    <div>
+                        <strong th:text="${activity.name}"></strong>
+                        <br>
+                        <small th:if="${activity.location != null}">
+                            <i class="bi bi-geo-alt"></i> <span th:text="${activity.location}"></span>
+                        </small>
+                    </div>
+                    <div class="text-end">
+                        <div th:if="${activity.startTime != null}" class="time-badge">
+                            <span th:text="${#temporals.format(activity.startTime, 'HH:mm')}"></span>
+                        </div>
+                        <small th:if="${activity.startTime != null}" th:text="${#temporals.format(activity.startTime, 'dd MMM')}"></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form th:action="@{/guest/schedule}" method="GET" class="row g-2">
+                <input type="hidden" name="eventId" th:value="${event.id}">
+                <div class="col-6">
+                    <select name="type" class="form-select form-select-sm">
+                        <option value="">All Types</option>
+                        <option th:each="t : ${types}"
+                                th:value="${t}"
+                                th:text="${t}"
+                                th:selected="${selectedType != null && selectedType == t}">
+                        </option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <select name="date" class="form-select form-select-sm">
+                        <option value="">All Dates</option>
+                        <option th:each="d : ${availableDates}"
+                                th:value="${d}"
+                                th:text="${#temporals.format(d, 'dd MMM')}"
+                                th:selected="${selectedDate != null && selectedDate.equals(d)}">
+                        </option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Schedule Timeline -->
+    <div th:if="${activities.isEmpty()}" class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No activities to display.
+    </div>
+
+    <!-- Group by Date -->
+    <div th:if="${!groupedActivities.isEmpty()}" th:each="entry : ${groupedActivities}">
+        <div class="timeline-date mb-3">
+            <i class="bi bi-calendar3 me-2"></i>
+            <span th:text="${#temporals.format(entry.key, 'EEEE, dd MMMM')}"></span>
+        </div>
+
+        <div th:each="activity : ${entry.value}" class="card activity-card mb-3 shadow-sm"
+             th:classappend="${activity.ongoing} ? 'ongoing' : (${activity.completed} ? 'completed' : '')">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-3 text-center">
+                        <div class="time-badge text-primary">
+                            <span th:if="${activity.startTime != null}" th:text="${#temporals.format(activity.startTime, 'HH:mm')}"></span>
+                        </div>
+                        <small th:if="${activity.endTime != null}" class="text-muted d-block">
+                            - <span th:text="${#temporals.format(activity.endTime, 'HH:mm')}"></span>
+                        </small>
+                    </div>
+                    <div class="col-9">
+                        <h6 class="mb-1">
+                            <span th:text="${activity.name}"></span>
+                            <span th:if="${activity.ongoing}" class="badge bg-success ms-1">Now</span>
+                        </h6>
+                        <span class="badge type-badge mb-2"
+                              th:classappend="'type-' + ${activity.activityType.name().toLowerCase()}"
+                              th:text="${activity.activityType}"></span>
+
+                        <p th:if="${activity.description != null}" class="text-muted small mb-2" th:text="${activity.description}"></p>
+
+                        <div class="small">
+                            <span th:if="${activity.location != null}" class="me-3">
+                                <i class="bi bi-geo-alt text-danger"></i> <span th:text="${activity.location}"></span>
+                            </span>
+                            <span th:if="${activity.dressCode != null}" class="dress-code-badge">
+                                <i class="bi bi-person-badge"></i> <span th:text="${activity.dressCode}"></span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activities without date -->
+    <div th:if="${!activities.isEmpty()}">
+        <div th:each="activity : ${activities}" th:if="${activity.startTime == null}"
+             class="card activity-card mb-3 shadow-sm">
+            <div class="card-body">
+                <h6 class="mb-1">
+                    <span th:text="${activity.name}"></span>
+                    <span class="badge type-badge ms-2"
+                          th:classappend="'type-' + ${activity.activityType.name().toLowerCase()}"
+                          th:text="${activity.activityType}"></span>
+                </h6>
+                <p th:if="${activity.description != null}" class="text-muted small mb-2" th:text="${activity.description}"></p>
+                <div class="small">
+                    <span th:if="${activity.location != null}" class="me-3">
+                        <i class="bi bi-geo-alt text-danger"></i> <span th:text="${activity.location}"></span>
+                    </span>
+                    <span th:if="${activity.dressCode != null}" class="dress-code-badge">
+                        <i class="bi bi-person-badge"></i> <span th:text="${activity.dressCode}"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

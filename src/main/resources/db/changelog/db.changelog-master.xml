@@ -8,4 +8,10 @@
     <!-- WedKnots Database - Complete Baseline Schema -->
     <include file="db/changelog/db.changelog-baseline.xml" relativeToChangelogFile="false"/>
 
+    <!-- Supplier and Event Items -->
+    <include file="db/changelog/db.changelog-supplier-items.xml" relativeToChangelogFile="false"/>
+
+    <!-- Event Activities/Schedule -->
+    <include file="db/changelog/db.changelog-event-activities.xml" relativeToChangelogFile="false"/>
+
 </databaseChangeLog>

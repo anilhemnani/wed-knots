@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Event Items - Supplier Tracking</title>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
+    <style>
+        .status-badge {
+            font-size: 0.85rem;
+            padding: 0.35rem 0.65rem;
+        }
+        .status-pending { background-color: #ffc107; color: #000; }
+        .status-ordered { background-color: #17a2b8; color: #fff; }
+        .status-delivered { background-color: #28a745; color: #fff; }
+        .status-not-needed { background-color: #6c757d; color: #fff; }
+        .overdue { background-color: #fff3cd !important; }
+        .stat-card {
+            border-radius: 10px;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        .sortable-header {
+            cursor: pointer;
+            user-select: none;
+        }
+        .sortable-header:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body class="bg-light">
+<th:block th:replace="~{_navbar :: adminNav}"></th:block>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="bi bi-box-seam"></i> Event Items (Admin)</h1>
+            <p class="text-muted" th:text="'Items for ' + ${event.name}"></p>
+        </div>
+        <div class="btn-group">
+            <a th:href="@{/admin/events/{id}/items/new(id=${event.id})}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Add Item
+            </a>
+            <a th:href="@{/admin/events/{id}/items/suppliers(id=${event.id})}" class="btn btn-primary">
+                <i class="bi bi-building"></i> Manage Suppliers
+            </a>
+            <a th:href="@{/admin/events/{id}(id=${event.id})}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Event
+            </a>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle"></i> <span th:text="${success}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> <span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3 class="mb-0" th:text="${pendingCount}">0</h3>
+                    <small>Pending</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0" th:text="${orderedCount}">0</h3>
+                    <small>Ordered</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0" th:text="${deliveredCount}">0</h3>
+                    <small>Delivered</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0" th:text="${notNeededCount}">0</h3>
+                    <small>Not Needed</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overdue Items Alert -->
+    <div th:if="${!overdueItems.isEmpty()}" class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <strong>Overdue Items:</strong>
+        <span th:text="${overdueItems.size()} + ' item(s) are past their needed-by date!'"></span>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filters</h5>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/admin/events/{id}/items(id=${event.id})}" method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Supplier</label>
+                    <select name="supplierId" class="form-select">
+                        <option value="">All Suppliers</option>
+                        <option th:each="supplier : ${suppliers}"
+                                th:value="${supplier.id}"
+                                th:text="${supplier.name}"
+                                th:selected="${selectedSupplierId != null && selectedSupplierId == supplier.id}">
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Activity/Ceremony</label>
+                    <select name="activityId" class="form-select">
+                        <option value="">All Activities</option>
+                        <option th:each="activity : ${activities}"
+                                th:value="${activity.id}"
+                                th:text="${activity.name}"
+                                th:selected="${selectedActivityId != null && selectedActivityId == activity.id}">
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Item Name</label>
+                    <input type="text" name="name" class="form-control"
+                           th:value="${selectedName}" placeholder="Search...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option th:each="s : ${statuses}"
+                                th:value="${s}"
+                                th:text="${s}"
+                                th:selected="${selectedStatus != null && selectedStatus == s}">
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                    <a th:href="@{/admin/events/{id}/items(id=${event.id})}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Items Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Items List</h5>
+            <span class="badge bg-light text-dark" th:text="${items.size()} + ' items'"></span>
+        </div>
+        <div class="card-body">
+            <div th:if="${items.isEmpty()}" class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No items found. Click "Add Item" to add your first item.
+            </div>
+
+            <div th:if="${!items.isEmpty()}" class="table-responsive">
+                <table class="table table-hover table-striped" id="itemsTable">
+                    <thead class="table-dark">
+                    <tr>
+                        <th class="sortable-header" data-sort="name">
+                            Item Name <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th class="sortable-header" data-sort="quantity">
+                            Qty <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th class="sortable-header" data-sort="supplier">
+                            Supplier <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th class="sortable-header" data-sort="neededFor">
+                            Needed For <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th class="sortable-header" data-sort="responsible">
+                            Responsible <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th class="sortable-header" data-sort="neededBy">
+                            Needed By <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th class="sortable-header" data-sort="price">
+                            Price <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th class="sortable-header" data-sort="status">
+                            Status <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="item : ${items}"
+                        th:classappend="${item.neededByDate != null && item.neededByDate.isBefore(T(java.time.LocalDate).now()) && item.status.name() != 'DELIVERED' && item.status.name() != 'NOT_NEEDED'} ? 'overdue' : ''">
+                        <td>
+                            <strong th:text="${item.name}"></strong>
+                            <br th:if="${item.description != null}">
+                            <small class="text-muted" th:if="${item.description != null}" th:text="${item.description}"></small>
+                        </td>
+                        <td>
+                            <span th:text="${item.quantity != null ? item.quantity : '-'}"></span>
+                            <span th:if="${item.unit != null}" th:text="' ' + ${item.unit}"></span>
+                        </td>
+                        <td>
+                            <span th:if="${item.supplier != null}" th:text="${item.supplier.name}"></span>
+                            <span th:if="${item.supplier == null}" class="text-muted">No supplier</span>
+                        </td>
+                        <td>
+                            <span th:if="${item.neededForActivity != null}" th:text="${item.neededForActivity.name}"></span>
+                            <span th:if="${item.neededForActivity == null}" class="text-muted">-</span>
+                        </td>
+                        <td>
+                            <span th:if="${item.responsible != null}" th:text="${item.responsible}"></span>
+                            <span th:if="${item.responsible == null}" class="text-muted">-</span>
+                        </td>
+                        <td>
+                            <span th:if="${item.neededByDate != null}" th:text="${#temporals.format(item.neededByDate, 'dd MMM yyyy')}"></span>
+                            <span th:if="${item.neededByDate == null}" class="text-muted">-</span>
+                        </td>
+                        <td>
+                            <span th:if="${item.totalPrice != null}" th:text="'₹' + ${#numbers.formatDecimal(item.totalPrice, 1, 2)}"></span>
+                            <span th:if="${item.totalPrice == null}" class="text-muted">-</span>
+                        </td>
+                        <td>
+                            <span class="badge status-badge"
+                                  th:classappend="'status-' + ${item.status.name().toLowerCase().replace('_', '-')}"
+                                  th:text="${item.status}"></span>
+                        </td>
+                        <td class="text-end">
+                            <!-- Quick Status Change -->
+                            <div class="btn-group btn-group-sm me-1">
+                                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li th:each="s : ${statuses}">
+                                        <form th:action="@{/admin/events/{eventId}/items/{itemId}/status(eventId=${event.id},itemId=${item.id})}" method="POST" style="display:inline;">
+                                            <input type="hidden" name="status" th:value="${s}">
+                                            <button type="submit" class="dropdown-item" th:text="${s}"></button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                            <a th:href="@{/admin/events/{eventId}/items/{itemId}/edit(eventId=${event.id},itemId=${item.id})}"
+                               class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form th:action="@{/admin/events/{eventId}/items/{itemId}/delete(eventId=${event.id},itemId=${item.id})}"
+                                  method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-danger"
+                                        onclick="return confirm('Are you sure you want to delete this item?')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                    <tfoot class="table-light">
+                    <tr>
+                        <th colspan="6" class="text-end">Total:</th>
+                        <th th:text="'₹' + ${#numbers.formatDecimal(totalCost, 1, 2)}"></th>
+                        <th colspan="2"></th>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('itemsTable');
+    if (!table) return;
+
+    const headers = table.querySelectorAll('.sortable-header');
+    const tbody = table.querySelector('tbody');
+    let currentSort = { column: null, ascending: true };
+
+    headers.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortKey = this.dataset.sort;
+
+            if (currentSort.column === sortKey) {
+                currentSort.ascending = !currentSort.ascending;
+            } else {
+                currentSort.column = sortKey;
+                currentSort.ascending = true;
+            }
+
+            sortTable(sortKey, currentSort.ascending);
+            updateSortIndicators(this, currentSort.ascending);
+        });
+    });
+
+    function sortTable(key, ascending) {
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        rows.sort((a, b) => {
+            let aVal, bVal;
+            const cells = {
+                a: a.querySelectorAll('td'),
+                b: b.querySelectorAll('td')
+            };
+
+            switch(key) {
+                case 'name':
+                    aVal = cells.a[0].textContent.trim().toLowerCase();
+                    bVal = cells.b[0].textContent.trim().toLowerCase();
+                    break;
+                case 'quantity':
+                    aVal = parseInt(cells.a[1].textContent) || 0;
+                    bVal = parseInt(cells.b[1].textContent) || 0;
+                    break;
+                case 'supplier':
+                    aVal = cells.a[2].textContent.trim().toLowerCase();
+                    bVal = cells.b[2].textContent.trim().toLowerCase();
+                    break;
+                case 'neededFor':
+                    aVal = cells.a[3].textContent.trim().toLowerCase();
+                    bVal = cells.b[3].textContent.trim().toLowerCase();
+                    break;
+                case 'responsible':
+                    aVal = cells.a[4].textContent.trim().toLowerCase();
+                    bVal = cells.b[4].textContent.trim().toLowerCase();
+                    break;
+                case 'neededBy':
+                    aVal = cells.a[5].textContent.trim();
+                    bVal = cells.b[5].textContent.trim();
+                    aVal = aVal === '-' ? '9999-12-31' : aVal;
+                    bVal = bVal === '-' ? '9999-12-31' : bVal;
+                    break;
+                case 'price':
+                    aVal = parseFloat(cells.a[6].textContent.replace(/[₹,]/g, '')) || 0;
+                    bVal = parseFloat(cells.b[6].textContent.replace(/[₹,]/g, '')) || 0;
+                    break;
+                case 'status':
+                    const statusOrder = {'PENDING': 1, 'ORDERED': 2, 'DELIVERED': 3, 'NOT_NEEDED': 4};
+                    aVal = statusOrder[cells.a[7].textContent.trim()] || 99;
+                    bVal = statusOrder[cells.b[7].textContent.trim()] || 99;
+                    break;
+                default:
+                    aVal = cells.a[0].textContent.trim();
+                    bVal = cells.b[0].textContent.trim();
+            }
+
+            if (typeof aVal === 'number' && typeof bVal === 'number') {
+                return ascending ? aVal - bVal : bVal - aVal;
+            }
+            return ascending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+    }
+
+    function updateSortIndicators(activeHeader, ascending) {
+        headers.forEach(h => {
+            const icon = h.querySelector('i');
+            icon.className = 'bi bi-arrow-down-up';
+        });
+
+        const icon = activeHeader.querySelector('i');
+        icon.className = ascending ? 'bi bi-sort-up' : 'bi bi-sort-down';
+    }
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

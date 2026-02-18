@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- ===== Supplier and Event Items Tables ===== -->
+
+    <!-- 1. supplier_tbl - Suppliers for wedding events -->
+    <changeSet id="supplier-item-1-create-supplier-table" author="wedknots">
+        <createTable tableName="supplier_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="contact_number" type="VARCHAR(50)"/>
+            <column name="city" type="VARCHAR(100)"/>
+            <column name="email" type="VARCHAR(255)"/>
+            <column name="notes" type="TEXT"/>
+            <column name="event_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="supplier_tbl" baseColumnNames="event_id"
+                                 referencedTableName="wedding_event_tbl" referencedColumnNames="id"
+                                 constraintName="fk_supplier_event" onDelete="CASCADE"/>
+        <createIndex tableName="supplier_tbl" indexName="idx_supplier_event_id">
+            <column name="event_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 2. event_item_tbl - Items to be sourced for events -->
+    <changeSet id="supplier-item-2-create-event-item-table" author="wedknots">
+        <createTable tableName="event_item_tbl">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="quantity" type="INT"/>
+            <column name="unit" type="VARCHAR(50)"/>
+            <column name="unit_price" type="DECIMAL(10,2)"/>
+            <column name="total_price" type="DECIMAL(10,2)"/>
+            <column name="needed_by_date" type="DATE"/>
+            <column name="status" type="VARCHAR(50)" defaultValue="PENDING"/>
+            <column name="notes" type="TEXT"/>
+            <column name="supplier_id" type="BIGINT"/>
+            <column name="event_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="event_item_tbl" baseColumnNames="supplier_id"
+                                 referencedTableName="supplier_tbl" referencedColumnNames="id"
+                                 constraintName="fk_event_item_supplier" onDelete="SET NULL"/>
+        <addForeignKeyConstraint baseTableName="event_item_tbl" baseColumnNames="event_id"
+                                 referencedTableName="wedding_event_tbl" referencedColumnNames="id"
+                                 constraintName="fk_event_item_event" onDelete="CASCADE"/>
+        <createIndex tableName="event_item_tbl" indexName="idx_event_item_event_id">
+            <column name="event_id"/>
+        </createIndex>
+        <createIndex tableName="event_item_tbl" indexName="idx_event_item_supplier_id">
+            <column name="supplier_id"/>
+        </createIndex>
+        <createIndex tableName="event_item_tbl" indexName="idx_event_item_status">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 3. Add needed_for and responsible columns to event_item_tbl -->
+    <changeSet id="supplier-item-3-add-needed-for-responsible" author="wedknots">
+        <addColumn tableName="event_item_tbl">
+            <column name="needed_for" type="VARCHAR(255)"/>
+            <column name="responsible" type="VARCHAR(255)"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- 4. Replace needed_for string with needed_for_activity_id foreign key -->
+    <changeSet id="supplier-item-4-add-needed-for-activity" author="wedknots">
+        <dropColumn tableName="event_item_tbl" columnName="needed_for"/>
+        <addColumn tableName="event_item_tbl">
+            <column name="needed_for_activity_id" type="BIGINT"/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="event_item_tbl" baseColumnNames="needed_for_activity_id"
+                                 referencedTableName="event_activity_tbl" referencedColumnNames="id"
+                                 constraintName="fk_event_item_activity" onDelete="SET NULL"/>
+        <createIndex tableName="event_item_tbl" indexName="idx_event_item_activity_id">
+            <column name="needed_for_activity_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
+

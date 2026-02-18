@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Manage Suppliers</title>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
+</head>
+<body class="bg-light">
+<th:block th:replace="~{_navbar :: hostNav}"></th:block>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="bi bi-building"></i> Suppliers</h1>
+            <p class="text-muted" th:text="'Suppliers for ' + ${event.name}"></p>
+        </div>
+        <div class="btn-group">
+            <a th:href="@{/events/{id}/items/suppliers/new(id=${event.id})}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Add Supplier
+            </a>
+            <a th:href="@{/events/{id}/items(id=${event.id})}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Items
+            </a>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle"></i> <span th:text="${success}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> <span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Suppliers List -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Suppliers List</h5>
+        </div>
+        <div class="card-body">
+            <div th:if="${suppliers.isEmpty()}" class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No suppliers added yet. Click "Add Supplier" to add your first supplier.
+            </div>
+
+            <div th:if="${!suppliers.isEmpty()}" class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark">
+                    <tr>
+                        <th>Name</th>
+                        <th>Contact Number</th>
+                        <th>City</th>
+                        <th>Email</th>
+                        <th>Notes</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="supplier : ${suppliers}">
+                        <td>
+                            <strong th:text="${supplier.name}"></strong>
+                        </td>
+                        <td>
+                            <span th:if="${supplier.contactNumber != null}">
+                                <a th:href="'tel:' + ${supplier.contactNumber}" th:text="${supplier.contactNumber}"></a>
+                            </span>
+                            <span th:if="${supplier.contactNumber == null}" class="text-muted">-</span>
+                        </td>
+                        <td>
+                            <span th:if="${supplier.city != null}" th:text="${supplier.city}"></span>
+                            <span th:if="${supplier.city == null}" class="text-muted">-</span>
+                        </td>
+                        <td>
+                            <span th:if="${supplier.email != null}">
+                                <a th:href="'mailto:' + ${supplier.email}" th:text="${supplier.email}"></a>
+                            </span>
+                            <span th:if="${supplier.email == null}" class="text-muted">-</span>
+                        </td>
+                        <td>
+                            <span th:if="${supplier.notes != null}"
+                                  th:text="${#strings.abbreviate(supplier.notes, 50)}"></span>
+                            <span th:if="${supplier.notes == null}" class="text-muted">-</span>
+                        </td>
+                        <td class="text-end">
+                            <a th:href="@{/events/{eventId}/items/suppliers/{supplierId}/edit(eventId=${event.id},supplierId=${supplier.id})}"
+                               class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form th:action="@{/events/{eventId}/items/suppliers/{supplierId}/delete(eventId=${event.id},supplierId=${supplier.id})}"
+                                  method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-danger"
+                                        onclick="return confirm('Are you sure? This will also affect items linked to this supplier.')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

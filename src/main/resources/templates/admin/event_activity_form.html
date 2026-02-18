@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${isNew} ? 'Add Activity' : 'Edit Activity'">Activity Form</title>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{_bootstrap_head :: head}"></th:block>
+</head>
+<body class="bg-light">
+<th:block th:replace="~{_navbar :: adminNav}"></th:block>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi" th:classappend="${isNew} ? 'bi-plus-circle' : 'bi-pencil'"></i>
+                        <span th:text="${isNew} ? 'Add New Activity (Admin)' : 'Edit Activity (Admin)'"></span>
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form th:action="${isNew} ? @{/admin/events/{id}/schedule/new(id=${event.id})} : @{/admin/events/{eventId}/schedule/{activityId}/edit(eventId=${event.id},activityId=${activity.id})}"
+                          method="POST">
+
+                        <div class="mb-3">
+                            <label class="form-label">Activity Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control"
+                                   th:value="${activity.name}" required placeholder="e.g., Sangeet Night, Wedding Ceremony">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="3"
+                                      th:text="${activity.description}" placeholder="Details about this activity"></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Activity Type</label>
+                                <select name="activityType" class="form-select">
+                                    <option th:each="t : ${types}"
+                                            th:value="${t}"
+                                            th:text="${t}"
+                                            th:selected="${activity.activityType != null && activity.activityType == t}">
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Location</label>
+                                <input type="text" name="location" class="form-control"
+                                       th:value="${activity.location}" placeholder="e.g., Main Hall, Garden Area">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Start Time</label>
+                                <input type="datetime-local" name="startTime" class="form-control"
+                                       th:value="${activity.startTime != null ? #temporals.format(activity.startTime, 'yyyy-MM-dd''T''HH:mm') : ''}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">End Time</label>
+                                <input type="datetime-local" name="endTime" class="form-control"
+                                       th:value="${activity.endTime != null ? #temporals.format(activity.endTime, 'yyyy-MM-dd''T''HH:mm') : ''}">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Dress Code</label>
+                                <input type="text" name="dressCode" class="form-control"
+                                       th:value="${activity.dressCode}" placeholder="e.g., Traditional, Formal, Casual">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Sort Order</label>
+                                <input type="number" name="sortOrder" class="form-control"
+                                       th:value="${activity.sortOrder}" min="0" placeholder="Display order">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea name="notes" class="form-control" rows="2"
+                                      th:text="${activity.notes}" placeholder="Internal notes (not visible to guests)"></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="visibleToGuests"
+                                       id="visibleToGuests" value="true"
+                                       th:checked="${activity.visibleToGuests == null || activity.visibleToGuests}">
+                                <label class="form-check-label" for="visibleToGuests">
+                                    <i class="bi bi-eye"></i> Visible to Guests
+                                </label>
+                                <div class="form-text">When enabled, guests can see this activity in their schedule</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a th:href="@{/admin/events/{id}/schedule(id=${event.id})}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i>
+                                <span th:text="${isNew} ? 'Create Activity' : 'Save Changes'"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
