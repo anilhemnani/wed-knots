@@ -48,5 +48,12 @@
         </createIndex>
     </changeSet>
 
+    <!-- 2. Add foreign key from event_item_tbl to event_activity_tbl (now that the table exists) -->
+    <changeSet id="event-activity-2-add-item-fk" author="wedknots">
+        <addForeignKeyConstraint baseTableName="event_item_tbl" baseColumnNames="needed_for_activity_id"
+                                 referencedTableName="event_activity_tbl" referencedColumnNames="id"
+                                 constraintName="fk_event_item_activity" onDelete="SET NULL"/>
+    </changeSet>
+
 </databaseChangeLog>
 

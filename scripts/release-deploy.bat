@@ -27,14 +27,8 @@ REM Example: release-deploy.bat 1.0.2
 REM Get the project root directory (parent of scripts)
 cd /d "%~dp0.."
 set "PROJECT_ROOT=%CD%"
-set "MAVEN_PATH=%MAVEN_HOME%\bin\mvn.cmd"
 set "HOSTING_PATH=C:\hosting\wed-knots"
 
-REM Validate Maven is available
-if not exist "%MAVEN_PATH%" (
-  echo ERROR: Maven not found at %MAVEN_PATH%
-  exit /b 1
-)
 
 REM Check if version parameter is provided
 if "%1"=="" (
@@ -68,7 +62,7 @@ REM Step 1: Update pom.xml with release version using Maven versions plugin
 echo.
 echo [STEP 1] Updating pom.xml to version %RELEASE_VERSION% using Maven...
 cd /d "%PROJECT_ROOT%"
-call "%MAVEN_PATH%" versions:set -DnewVersion=%RELEASE_VERSION% -DgenerateBackupPoms=false
+call mvn versions:set -DnewVersion=%RELEASE_VERSION% -DgenerateBackupPoms=false
 if errorlevel 1 (
   echo ERROR: Failed to update version using Maven
   exit /b 1
@@ -79,7 +73,7 @@ REM Step 2: Build Maven package
 echo.
 echo [STEP 2] Building Maven package...
 cd /d "%PROJECT_ROOT%"
-call "%MAVEN_PATH%" clean package -DskipTests
+call mvn clean package -DskipTests
 if errorlevel 1 (
   echo ERROR: Maven build failed
   exit /b 1
@@ -135,7 +129,7 @@ REM Step 6: Update pom.xml with next snapshot version using Maven versions plugi
 echo.
 echo [STEP 6] Updating pom.xml to next snapshot version %NEXT_VERSION% using Maven...
 cd /d "%PROJECT_ROOT%"
-call "%MAVEN_PATH%" versions:set -DnewVersion=%NEXT_VERSION% -DgenerateBackupPoms=false
+call mvn versions:set -DnewVersion=%NEXT_VERSION% -DgenerateBackupPoms=false
 if errorlevel 1 (
   echo ERROR: Failed to update pom.xml to snapshot version
   exit /b 1
