@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.wedknots</groupId>
     <artifactId>wed-knots</artifactId>
-    <version>3.0.17-SNAPSHOT</version>
+    <version>3.0.17</version>
     <packaging>jar</packaging>
     <name>wed-knots</name>
     <description>Wedding Management System - Java Spring Boot Version</description>
@@ -187,6 +187,7 @@
                     <source>21</source>
                     <target>21</target>
                     <release>21</release>
+                    <parameters>true</parameters>
                     <fork>false</fork>
                     <useIncrementalCompilation>false</useIncrementalCompilation>
                     <annotationProcessorPaths>
